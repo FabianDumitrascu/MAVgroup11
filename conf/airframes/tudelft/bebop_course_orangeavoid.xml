@@ -33,7 +33,7 @@
       <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="249"/>
     </target>
     
-    <define name="ARRIVED_AT_WAYPOINT" value="0.5"/><!-- Detect arrival at waypoint when within 0.5m -->
+    <define name="ARRIVED_AT_WAYPOINT" value="0.3"/><!-- Detect arrival at waypoint when within 0.3m -->
 
   <!-- Subsystem section -->
     <module name="telemetry" type="transparent_udp"/>
@@ -271,4 +271,9 @@
     <define name="LOW_BAT_LEVEL" value="11.1" unit="V"/>
     <define name="MAX_BAT_LEVEL" value="12.4" unit="V"/>
   </section>
+  
+  <section name="GCS">
+    <define name="AC_ICON"             value="quadrotor_xi"/>
+  </section>
+
 </airframe>
