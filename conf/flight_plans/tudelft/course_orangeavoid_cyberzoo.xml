@@ -112,7 +112,7 @@
       <stay wp="STDBY"/>
     </block>
     <block name="RETREAT">
-      <exception cond="block_time @GT 1.8" deroute="STOP"/>
+      <exception cond="block_time @GT 2.0" deroute="STOP"/>
       <call_once fun="NavSetWaypointHere(WP_RETREAT)"/>
       <stay wp="RETREAT"/>
     </block>
