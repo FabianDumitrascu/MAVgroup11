@@ -46,8 +46,6 @@
       !(nav_block >= IndexOfBlock('land here')) @AND
       (autopilot_in_flight() == true) )" deroute="Standby"/-->
     <!-- Datalink lost (constant RPM descent) -->
-    
-    <!-- CHANGE -->
     <exception cond="((datalink_time @GT 2) @AND 
       !(IndexOfBlock('Holding point') @GT nav_block) @AND
       !(nav_block >= IndexOfBlock('land here')) @AND
@@ -118,7 +116,7 @@
       <call_once fun="NavSetWaypointHere(WP_RETREAT)"/>
       <stay wp="RETREAT"/>
     </block>
-    <block key="l" name="land here" strip_button="land here" strip_icon="land-right.png">
+    <block key="l" name="Land Here" strip_button="Land Here" strip_icon="land-right.png">
       <call_once fun="NavSetWaypointHere(WP_TD)"/>
       <deroute block="Land"/>
     </block>
