@@ -40,16 +40,16 @@
     </sector>
   </sectors>
   <exceptions>
-    <!-- GPS Lost -->
+    <!-- GPS Lost (KILL Moters!) -->
     <exception cond="((GpsIsLost() == true) @AND
       !(IndexOfBlock('Holding point') @GT nav_block) @AND
       !(nav_block >= IndexOfBlock('Emergency Landing')) @AND
-      (autopilot_in_flight() == true) )" deroute="Emergency Landing"/>
+      (autopilot_in_flight() == true) )" deroute="FAILSAFE"/>
     <!-- Datalink Lost -->
     <exception cond="((datalink_time @GT 2) @AND 
       !(IndexOfBlock('Holding point') @GT nav_block) @AND
       !(nav_block >= IndexOfBlock('Emergency Landing')) @AND
-      (autopilot_in_flight() == true) )" deroute="Emergency Landing"/>
+      (autopilot_in_flight() == true) )" deroute="FAILSAFE"/>
     <!-- Geofencing XY -->
     <exception cond="(!InsideCyberZoo(GetPosX(), GetPosY()) @AND
       !(IndexOfBlock('Holding point') @GT nav_block) @AND
@@ -119,7 +119,6 @@
     <block key="e" name="Emergency Landing">
       <exception cond="!nav_is_in_flight()" deroute="Holding point"/>
       <exception cond="0.10 @GT GetPosAlt()" deroute="Holding point"/>
-      <call_once fun="autopilot_static_set_mode(AP_MODE_NAV)"/>
       <call_once fun="NavSetWaypointHere(WP_TD)"/>
       <call_once fun="NavStartDetectGround()"/>
       <stay climb="-1.0" vmode="climb" wp="TD"/>
@@ -143,6 +142,9 @@
     <block name="Landed">
       <call_once fun="NavKillThrottle()"/>
       <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/>
+    </block>
+    <block name="FAILSAFE">
+      <call_once fun="autopilot_static_set_mode(AP_MODE_KILL)"/> <!-- (Does NOT kill motors) Sets thurst to name="THRUST" failsafe_value="..." -->
     </block>
   </blocks>
 </flight_plan>

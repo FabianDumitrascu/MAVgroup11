@@ -227,7 +227,7 @@
     <define name="ADAPT_THROTTLE_ENABLED" value="TRUE"/>
 
     <define name="ADAPT_INITIAL_HOVER_THROTTLE" value="0.68" />
-    <define name="ADAPT_MIN_HOVER_THROTTLE" value="0.55" />
+    <define name="ADAPT_MIN_HOVER_THROTTLE" value="0.50" />
     <define name="ADAPT_MAX_HOVER_THROTTLE" value="0.72" />
     <!-- <define name="ADAPT_NOISE_FACTOR" value="0.8" /> -->
   </section>
