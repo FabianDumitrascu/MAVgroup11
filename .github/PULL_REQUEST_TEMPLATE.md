@@ -20,7 +20,7 @@ Please include a summary of the change and link any related issues:
 - [ ] Other (please describe):
 
 **Test Configuration**:
-- OS:
+- Sim/Real:
 - Hardware/Drone Setup (if relevant):
 - Additional notes:
 
