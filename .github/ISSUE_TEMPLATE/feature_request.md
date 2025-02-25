@@ -9,7 +9,7 @@ assignees: ''
 **Summary of the Feature**
 A clear and concise description of what you want to happen.
 
-**User Story Reference (Optional)**
+**Closes the Following Issues**
 Closes # (input a number here if an issue gets closed)
 Closes #
 Closes #
