@@ -19,12 +19,11 @@ As a [type of user], I want [some goal] so that [some reason/benefit].
 - [ ] Merged into `development` branch
 - [ ] Passed code review
 
+**Closes the Following Issues**
+Closes # (input a number here if an issue gets closed)
+Closes #
+Closes #
+
 **Additional Context**
 - Relevant files, links, or references
 - Attach designs or screenshots if applicable
-
-**Estimated Story Points**
-(Example: 1, 2, 3, 5, 8, 13)
-
-**Sprint**
-Which sprint or milestone is this story targeted for?
