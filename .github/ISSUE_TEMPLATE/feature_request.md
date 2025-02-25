@@ -10,7 +10,9 @@ assignees: ''
 A clear and concise description of what you want to happen.
 
 **User Story Reference (Optional)**
-If this feature is related to a user story, link it here: #UserStoryID
+Closes # (input a number here if an issue gets closed)
+Closes #
+Closes #
 
 **Acceptance Criteria**
 - [ ] Criteria 1
@@ -27,9 +29,3 @@ If this feature is related to a user story, link it here: #UserStoryID
 - Rationale behind this feature
 - Relevant screenshots or design mock-ups
 - Dependencies on other features/modules
-
-**Estimated Story Points**
-(Example: 2, 3, 5, 8, 13)
-
-**Sprint**
-Which sprint or milestone is this feature targeted for?
