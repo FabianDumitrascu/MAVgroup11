@@ -6,17 +6,12 @@ labels: task
 assignees: ''
 ---
 
-**Task Description**
+**Task Description**  
 A concise summary of what needs to be done.
 
 **Subtasks**
 - [ ] Subtask 1
 - [ ] Subtask 2
-
-**Closes the Following Issues**
-Closes # (input a number here if an issue gets closed)
-Closes #
-Closes #
 
 **Definition of Done**
 - [ ] Task completed/tested

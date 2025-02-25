@@ -6,7 +6,7 @@ labels: user story
 assignees: ''
 ---
 
-**User Story**
+**User Story**  
 As a [type of user], I want [some goal] so that [some reason/benefit].
 
 **Acceptance Criteria**
@@ -18,11 +18,6 @@ As a [type of user], I want [some goal] so that [some reason/benefit].
 - [ ] Code is tested and documented
 - [ ] Merged into `development` branch
 - [ ] Passed code review
-
-**Closes the Following Issues**
-Closes # (input a number here if an issue gets closed)
-Closes #
-Closes #
 
 **Additional Context**
 - Relevant files, links, or references
