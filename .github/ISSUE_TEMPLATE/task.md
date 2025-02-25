@@ -13,6 +13,11 @@ A concise summary of what needs to be done.
 - [ ] Subtask 1
 - [ ] Subtask 2
 
+**Closes the Following Issues**
+Closes # (input a number here if an issue gets closed)
+Closes #
+Closes #
+
 **Definition of Done**
 - [ ] Task completed/tested
 - [ ] Code reviewed/approved
@@ -22,9 +27,3 @@ A concise summary of what needs to be done.
 **Additional Context**
 - Links, references, or clarifications
 - Dependencies (if any)
-
-**Estimated Time/Points**
-(Example: 1-2 hours, or 1 point)
-
-**Sprint**
-Which sprint or milestone is this task for?
