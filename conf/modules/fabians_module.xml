@@ -1,0 +1,26 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="fabians_module">
+  <doc>
+    <description>
+This module is an example module for the course AE4317 Autonomous Flight of Micro Air Vehicles at the TU Delft.
+This module is used in combination with a color filter (cv_detect_color_object) and the navigation mode of the autopilot.
+The avoidance strategy is to simply count the total number of orange pixels. When above a certain percentage threshold,
+(given by color_count_frac) we assume that there is an obstacle and we turn.
+
+The color filter settings are set using the cv_detect_color_object. This module can run multiple filters simultaneously
+so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTION_ID setting.
+    </description>
+  </doc>
+  <dep>
+    <depends>cv_detect_color_object</depends>
+  </dep>
+  <header>
+    <file name="fabians_module.h"/>
+  </header>
+  <init fun="fabians_module_init()"/>
+  <periodic fun="fabians_module_periodic()" freq="4"/>
+  <makefile target="ap|nps">
+    <file name="fabians_module.c"/>
+  </makefile>
+</module>
