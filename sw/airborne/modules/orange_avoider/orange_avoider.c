@@ -87,6 +87,7 @@ uint8_t verifyHeading(float goalHeading) {
   maxError = 1.0f;
   currentHeading = nav.heading;
   difference = fabsf(currentHeading - goalHeading);
+  VERBOSE_PRINT("currentHeading=%f, goalHeading=%f, difference=%f", currentHeading, goalHeading, difference);
   if (difference < maxError){
     return 1;
   }
