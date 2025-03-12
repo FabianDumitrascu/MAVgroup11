@@ -36,6 +36,8 @@
 #include <math.h>
 #include "pthread.h"
 
+#define OBJECT_DETECTOR_VERBOSE TRUE
+
 #define PRINT(string,...) fprintf(stderr, "[object_detector->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if OBJECT_DETECTOR_VERBOSE
 #define VERBOSE_PRINT PRINT
