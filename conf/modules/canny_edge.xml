@@ -1,0 +1,28 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="canny_edge" dir="modules/canny_edge">
+  <doc>
+    <description>
+      This module performs Canny edge detection on images from the UAV's camera.
+    </description>
+  </doc>
+
+  <!-- Settings for Canny Edge Detection -->
+  <settings>
+    <dl_settings>
+      <dl_setting var="CANNY_EDGE" min="0" max="1" step="1" />
+      <dl_setting var="CANNY_EDGE_THRESHOLD_LOW" min="0" step="1" max="255"/>
+      <dl_setting var="CANNY_EDGE_THRESHOLD_HIGH" min="0" step="1" max="255"/>
+    </dl_settings>
+  </settings>
+
+  <header>
+    <file name="canny_edge.h"/>
+  </header>
+  
+  <!-- Makefile configuration -->
+  <makefile target="ap|nps">
+    <file name="canny_edge.cpp"/>
+  </makefile>
+</module>
+
