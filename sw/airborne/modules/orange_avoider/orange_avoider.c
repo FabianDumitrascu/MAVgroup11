@@ -56,6 +56,8 @@ void orange_avoider_periodic(void) {
   VERBOSE_PRINT("Drone not in Flight.");
   return;
   }
+  VERBOSE_PRINT("Verify heading output: %i\n", verifyHeading(startHeading));
+
   if (verifyHeading(startHeading) != 1){
     chooseStartPath(startHeading);
   }
