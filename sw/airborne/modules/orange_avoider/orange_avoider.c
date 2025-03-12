@@ -85,7 +85,7 @@ uint8_t chooseStartPath(float startHeading) {
 uint8_t verifyHeading(float goalHeading) {
   float currentHeading, difference, maxError;
   maxError = 1.0f;
-  currentHeading = nav.heading;
+  currentHeading = DegOfRad(nav.heading);
   difference = fabsf(currentHeading - goalHeading);
   if (difference < maxError){
     return 1;
