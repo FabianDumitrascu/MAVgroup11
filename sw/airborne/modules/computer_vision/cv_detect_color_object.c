@@ -36,6 +36,7 @@
 #include <math.h>
 #include "pthread.h"
 
+
 #define PRINT(string,...) fprintf(stderr, "[object_detector->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if OBJECT_DETECTOR_VERBOSE
 #define VERBOSE_PRINT PRINT
@@ -215,10 +216,16 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t tot_x = 0;
   uint32_t tot_y = 0;
   uint8_t *buffer = img->buf;
+    
+    // Define the region of interest (ROI)
+  uint16_t x_start = 0;
+  uint16_t x_end = img->w;  // First 1/6th (40 pixels)
+  uint16_t y_start = 0;  // Approx middle start (130 pixels)
+  uint16_t y_end = img->h;  // Approx middle end (390 pixels)
 
   // Go through all the pixels
-  for (uint16_t y = 0; y < img->h; y++) {
-    for (uint16_t x = 0; x < img->w; x ++) {
+  for (uint16_t y = y_start; y < y_end; y++) {
+    for (uint16_t x = x_start; x < x_end; x ++) {
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
       if (x % 2 == 0) {

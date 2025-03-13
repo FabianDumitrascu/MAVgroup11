@@ -19,6 +19,34 @@ float computeIoU(Rect box1, Rect box2) {
     return (float)intersectionArea / (box1Area + box2Area - intersectionArea);
 }
 
+// Apply Non-Maximum Suppression (NMS)
+vector<Rect> applyNMS(vector<Rect>& boxes, float iouThreshold = 0.5) {
+    if (boxes.empty()) return {};
+
+    // Sort boxes by area (or confidence if available)
+    sort(boxes.begin(), boxes.end(), [](const Rect& a, const Rect& b) {
+        return (a.width * a.height) > (b.width * b.height); // Larger area first
+    });
+
+    vector<bool> suppressed(boxes.size(), false);
+    vector<Rect> finalBoxes;
+
+    for (size_t i = 0; i < boxes.size(); i++) {
+        if (suppressed[i]) continue;
+
+        finalBoxes.push_back(boxes[i]);
+
+        for (size_t j = i + 1; j < boxes.size(); j++) {
+            if (computeIoU(boxes[i], boxes[j]) > iouThreshold) {
+                suppressed[j] = true; // Suppress overlapping box
+            }
+        }
+    }
+
+    return finalBoxes;
+}
+
+
 // Kalman Filter Object Tracker
 struct ObjectTracker {
     KalmanFilter kf;
@@ -46,9 +74,9 @@ struct ObjectTracker {
             0, 0, 1, 0, 0, 0,
             0, 0, 0, 1, 0, 0);
 
-        setIdentity(kf.processNoiseCov, Scalar::all(1e-2));
-        setIdentity(kf.measurementNoiseCov, Scalar::all(1e-2));
-        setIdentity(kf.errorCovPost, Scalar::all(0.1));
+        setIdentity(kf.processNoiseCov, Scalar::all(5e-3));
+        setIdentity(kf.measurementNoiseCov, Scalar::all(2e-2));
+        setIdentity(kf.errorCovPost, Scalar::all(0.0));
 
         kf.statePost.at<float>(0) = initialBox.x;
         kf.statePost.at<float>(1) = initialBox.y;
@@ -119,6 +147,15 @@ int main() {
 
     while (true) {
         cap >> frame;
+	// Crop the frame to remove a quarter from the top and bottom
+	int width = frame.cols;
+	int height = frame.rows;
+
+	int newHeight = height / 2;   // Keep only the central 50% (remove 25% from top and bottom)
+	int startY = height / 4;      // Start cropping from 1/4th of the original height
+
+	frame = frame(Rect(0, startY, width, newHeight)).clone();
+
         if (frame.empty()) {
             cerr << "Error: Empty frame!" << endl;
             break;
@@ -137,32 +174,59 @@ int main() {
 
         // Apply Gaussian blur
         Mat blurredImage;
-        GaussianBlur(grayImage, blurredImage, Size(5, 5), 1.4);
+        GaussianBlur(grayImage, blurredImage, Size(11, 11), 1.9);
 
         // Apply Canny edge detection
         Mat edges;
-        Canny(blurredImage, edges, 90, 150);
+        Canny(blurredImage, edges, 50, 255);
+        
+        vector<Vec4i> lines;
+	HoughLinesP(edges, lines, 1, CV_PI / 180, 50, 50, 10);
 
-        // Find contours
-        vector<vector<Point>> contours;
-        findContours(edges, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+	// Draw detected lines on the image
+	for (size_t i = 0; i < lines.size(); i++) {
+	    Vec4i l = lines[i];
+	    line(edges, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 0, 0), 4);
+	}
+
+
+     	Mat kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
+
+	// Apply dilation first to connect edges
+	dilate(edges, edges, kernel, Point(-1, -1), 2);
+
+	// Apply erosion to remove small noise and refine shapes
+	erode(edges, edges, kernel, Point(-1, -1), 1);
+
+        int borderSize = 2;  // Adjust based on need
+	copyMakeBorder(edges, edges, 0,0, borderSize, borderSize, BORDER_CONSTANT, Scalar(255)); 
+
+	vector<vector<Point>> contours;
+	findContours(edges, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
         // Filter objects by size and width
-        double min_area_threshold = 500.0;
-        double max_area_threshold = 5000.0;
+        double min_area_threshold = 2500.0;
+        double max_area_threshold = 20000.0;
         vector<Rect> detectedBoxes;
 
         for (const auto& contour : contours) {
             double area = contourArea(contour);
             Rect box = boundingRect(contour);
+            //double ratio = box.width/box.height;
+            double aspectRatio = (double)box.width / box.height;
+            if (aspectRatio < 0.1 || aspectRatio > 5.0) {  // Ignore very thin or wide objects
+	    continue;
+	    }
 
             if (area > min_area_threshold && area < max_area_threshold) {
-                // Ensure objects aren't too wide (aspect ratio limit)
-                //if (box.width < box.height * 0.5) {  
+            	//if (ratio < 1) {
                     detectedBoxes.push_back(box);
-                //}
+                    //}
             }
         }
+        
+	// Apply Non-Maximum Suppression (NMS) to remove redundant boxes
+	detectedBoxes = applyNMS(detectedBoxes, 0.5);
 
         // Predict positions of existing trackers
         for (auto& tracker : trackers) {
@@ -179,16 +243,20 @@ int main() {
 
             for (size_t i = 0; i < detectedBoxes.size(); i++) {
                 float iou = computeIoU(tracker.predictedBox, detectedBoxes[i]);
-                if (iou > bestIoU && iou > 0.3) { 
+                if (iou > bestIoU && iou > 0.3) {
                     bestIoU = iou;
                     bestMatchIdx = i;
                 }
             }
 
-            if (bestMatchIdx != -1) {
-                tracker.update(detectedBoxes[bestMatchIdx]);
-                matched[bestMatchIdx] = true;
-            }
+            if (bestMatchIdx != -1 && 
+		    (detectedBoxes[bestMatchIdx].width * detectedBoxes[bestMatchIdx].height) >= min_area_threshold &&
+		    (detectedBoxes[bestMatchIdx].width * detectedBoxes[bestMatchIdx].height) <= max_area_threshold) {
+		    
+		    tracker.update(detectedBoxes[bestMatchIdx]);
+		    matched[bestMatchIdx] = true;
+		}
+
         }
 
         // Add new trackers for unmatched detections
@@ -200,21 +268,27 @@ int main() {
 
         // Remove trackers that have been missing for too long
         trackers.erase(remove_if(trackers.begin(), trackers.end(),
-            [](ObjectTracker& t) { return t.missedFrames > ObjectTracker::maxMissedFrames; }), 
+            [](ObjectTracker& t) { return t.missedFrames > ObjectTracker::maxMissedFrames; }),
             trackers.end());
 
         // Draw bounding boxes
         for (auto& tracker : trackers) {
-            Scalar color = tracker.detected ? Scalar(0, 255, 0) : Scalar(0, 0, 255);
-            rectangle(frame, tracker.predictedBox, color, 2);
-        }
+        int area = tracker.predictedBox.width * tracker.predictedBox.height;
+	std::cout << tracker.predictedBox.width * tracker.predictedBox.height << "\n";
+	    	if (area >= min_area_threshold && area <= max_area_threshold) {
+		    Scalar color = tracker.detected ? Scalar(0, 255, 0) : Scalar(0, 0, 255);
+		    rectangle(frame, tracker.predictedBox, color, 2);
+
+		}
+	}
 
 	cv::rotate(frame, frame, cv::ROTATE_90_COUNTERCLOCKWISE);
 	cv::rotate(edges, edges, cv::ROTATE_90_COUNTERCLOCKWISE);
+	cv::rotate(blurredImage, blurredImage, cv::ROTATE_90_COUNTERCLOCKWISE);
 
-
-        imshow("Original Stream", frame);
         imshow("Edges", edges);
+        imshow("blurred",blurredImage);
+        imshow("Original Stream", frame);
 
 
         if (waitKey(1) == 27) break;
@@ -224,4 +298,3 @@ int main() {
     destroyAllWindows();
     return 0;
 }
-
