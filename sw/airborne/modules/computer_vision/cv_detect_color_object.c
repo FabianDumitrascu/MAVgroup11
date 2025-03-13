@@ -216,9 +216,16 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t tot_y = 0;
   uint8_t *buffer = img->buf;
 
-  // Go through all the pixels
-  for (uint16_t y = 0; y < img->h; y++) {
-    for (uint16_t x = 0; x < img->w; x ++) {
+  // Segment image
+  uint16_t y_min = 0;
+  uint16_t y_max = img->h / 2;
+  uint16_t x_min = img->w / 3;
+  uint16_t x_max = 2 * img->w / 3;
+  
+
+  // Go through all the pixels in the segment
+  for (uint16_t y = y_min; y < y_max; y++) {
+    for (uint16_t x = x_min; x < x_max; x ++) {
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
       if (x % 2 == 0) {
@@ -252,6 +259,17 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   } else {
     *p_xc = 0;
     *p_yc = 0;
+  }
+  //  rectangle around the ROI
+  if (draw) {
+    for (uint16_t x = x_min; x < x_max; x++) {
+      buffer[y_min * 2 * img->w + 2 * x + 1] = 255;  // Top boundary
+      buffer[y_min * 2 * img->w + 2 * x + 1] = 255;  // Bottom boundary
+    }
+    for (uint16_t y = y_min; y < y_max; y++) {
+      buffer[y * 2 * img->w + 2 * x_min + 1] = 255;  // Left boundary
+      buffer[y * 2 * img->w + 2 * x_max + 1] = 255;  // Right boundary
+    }
   }
   return cnt;
 }

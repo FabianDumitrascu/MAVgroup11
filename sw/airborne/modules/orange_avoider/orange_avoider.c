@@ -105,7 +105,7 @@ void orange_avoider_periodic(void)
   }
 
   // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * bottom_camera.output_size.w * bottom_camera.output_size.h;
+  int32_t color_count_threshold = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
 
   VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
 
