@@ -217,10 +217,10 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint8_t *buffer = img->buf;
 
   // Segment image
-  uint16_t y_min = 0;
-  uint16_t y_max = img->h / 2;
-  uint16_t x_min = img->w / 3;
-  uint16_t x_max = 2 * img->w / 3;
+  uint16_t x_min = 0;
+  uint16_t x_max = img->w / 2;
+  uint16_t y_min = img->h / 3;
+  uint16_t y_max = 2 * img->h / 3;
   
 
   // Go through all the pixels in the segment
@@ -263,8 +263,8 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   //  rectangle around the ROI
   if (draw) {
     for (uint16_t x = x_min; x < x_max; x++) {
-      buffer[y_min * 2 * img->w + 2 * x + 1] = 255;  // Top boundary
-      buffer[y_min * 2 * img->w + 2 * x + 1] = 255;  // Bottom boundary
+      buffer[y_min * 2 * img->h + 2 * x + 1] = 255;  // Top boundary
+      buffer[y_max * 2 * img->h + 2 * x + 1] = 255;  // Bottom boundary
     }
     for (uint16_t y = y_min; y < y_max; y++) {
       buffer[y * 2 * img->w + 2 * x_min + 1] = 255;  // Left boundary
