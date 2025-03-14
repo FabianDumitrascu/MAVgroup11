@@ -216,9 +216,15 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t tot_y = 0;
   uint8_t *buffer = img->buf;
 
+  // Select segment
+  uint16_t y_min = img->h / 3;
+  uint16_t y_max = 2 * img->h / 3;
+  uint16_t x_min = 0;
+  uint16_t x_max = img->w / 2;
+
   // Go through all the pixels
-  for (uint16_t y = 0; y < img->h; y++) {
-    for (uint16_t x = 0; x < img->w; x ++) {
+  for (uint16_t y = y_min; y < y_max; y++) {
+    for (uint16_t x = x_min; x < x_max; x ++) {
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
       if (x % 2 == 0) {
