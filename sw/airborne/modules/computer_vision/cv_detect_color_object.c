@@ -36,7 +36,7 @@
 #include <math.h>
 #include "pthread.h"
 
-#define PRINT(string,...) fprintf(stderr, "[object_detector->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
+#define PRINT(string,...) fprintf(stderr, "[object_detector->%s()] " string,_FUNCTION_ , ##_VA_ARGS_)
 #if OBJECT_DETECTOR_VERBOSE
 #define VERBOSE_PRINT PRINT
 #else
@@ -80,7 +80,7 @@ struct color_object_t {
 struct color_object_t global_filters[2];
 
 // Function
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+uint32_t find_object_centroid(struct image_t img, int32_t p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
@@ -140,13 +140,13 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 }
 
 struct image_t *object_detector1(struct image_t *img, uint8_t camera_id);
-struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attribute__((unused)))
+struct image_t *object_detector1(struct image_t *img, uint8_t camera_id _attribute_((unused)))
 {
   return object_detector(img, 1);
 }
 
 struct image_t *object_detector2(struct image_t *img, uint8_t camera_id);
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id __attribute__((unused)))
+struct image_t *object_detector2(struct image_t *img, uint8_t camera_id _attribute_((unused)))
 {
   return object_detector(img, 2);
 }
@@ -206,7 +206,7 @@ void color_object_detector_init(void)
  * @param draw - whether or not to draw on image
  * @return number of pixels of image within the filter bounds.
  */
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+uint32_t find_object_centroid(struct image_t img, int32_t p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max)
@@ -216,9 +216,16 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t tot_y = 0;
   uint8_t *buffer = img->buf;
 
-  // Go through all the pixels
-  for (uint16_t y = 0; y < img->h; y++) {
-    for (uint16_t x = 0; x < img->w; x ++) {
+  // Segment image
+  uint16_t x_min = 0;
+  uint16_t x_max = img->w / 2;
+  uint16_t y_min = img->h / 3;
+  uint16_t y_max = 2 * img->h / 3;
+  
+
+  // Go through all the pixels in the segment
+  for (uint16_t y = y_min; y < y_max; y++) {
+    for (uint16_t x = x_min; x < x_max; x ++) {
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
       if (x % 2 == 0) {
@@ -241,7 +248,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
         tot_x += x;
         tot_y += y;
         if (draw){
-          *yp = 0;  // make pixel brighter in image
+          *yp = 255;  // make pixel brighter in image
         }
       }
     }
@@ -252,6 +259,17 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   } else {
     *p_xc = 0;
     *p_yc = 0;
+  }
+  //  rectangle around the ROI
+  if (draw) {
+    for (uint16_t x = x_min; x < x_max; x++) {
+      buffer[y_min * 2 * img->h + 2 * x + 1] = 255;  // Top boundary
+      buffer[y_max * 2 * img->h + 2 * x + 1] = 255;  // Bottom boundary
+    }
+    for (uint16_t y = y_min; y < y_max; y++) {
+      buffer[y * 2 * img->w + 2 * x_min + 1] = 255;  // Left boundary
+      buffer[y * 2 * img->w + 2 * x_max + 1] = 255;  // Right boundary
+    }
   }
   return cnt;
 }
