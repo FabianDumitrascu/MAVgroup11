@@ -135,7 +135,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     }
   };
 
-  struct kernel5x5 kernel_5x5_sobel = {
+  struct kernel5x5 kernel_5x5_sobel_hor = { //this is horizontal because image is transposed
     .size = 5,
     .boundary = 2, 
     .values = {
@@ -145,15 +145,31 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
         -3, -2,  0,  2,  3,
         -2, -1,  0,  1,  2
     }
-};
+  };
+
+  struct kernel5x5 kernel_5x5_sobel_vert = {
+    .size = 5,
+    .boundary = 2, 
+    .values = {
+        -2, -3, -4, -3, -2,
+        -1, -2, -3, -2, -1,
+         0,  0,  0,  0,  0,
+         1,  2,  3,  2,  1,
+         2,  3,  4,  3,  2
+    }
+  };
+
+
 
   // Call apply_kernel to perform the convolution with a Gaussian filter.
   // edge_detection is false so that the function performs a weighted averaging.
   // The weight (normalization factor) is 16.
-  apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 273);
-  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel, true, 1);
+  // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 273);
+  // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 350);
+  // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_hor, true, 1);
+  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert, true, 1);
 
-  VERBOSE_PRINT("Applied Gaussian filter convolution\n");
+  // VERBOSE_PRINT("Applied Gaussian filter convolution\n");
 
   return img;
 }
@@ -234,7 +250,7 @@ void free_image(struct image_t *img) {
 struct kernel{
   uint8_t size; // how large is kernel (always square NxN) so for a 3x3 size=3
   uint8_t boundary; // how much boundary do we have (for 3, its 1 pixel, 5 gives 2 pixels etc.)
-  uint8_t values[];
+  int8_t values[];
 };
 
 void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight) {
@@ -251,7 +267,7 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
   for (uint16_t y = boundary; y < img->h - boundary; y++) {
     for (uint16_t x = boundary; x < img->w - boundary; x++) {
       uint8_t *yp, *up, *vp;
-      uint16_t result = 0;
+      int16_t result = 0;
       uint8_t kernel_index = 0;
 
       // Determine the Y channel pointer (assuming Y is at offset +1 for even x)
@@ -271,6 +287,10 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
         for (int8_t col = -((int8_t)kernel->boundary); col <= (int8_t)kernel->boundary; col++) {
           result += kernel->values[kernel_index] *
                     static_buffer[(y + row) * 2 * img->w + 2 * x + 2 * col + 1];
+          // VERBOSE_PRINT("kernel_value = %d, static_buffer = %d, index = %d\n", 
+          //   (int8_t)kernel->values[kernel_index], 
+          //   static_buffer[(y + row) * 2 * img->w + 2 * x + 2 * col + 1],
+          //   kernel_index);
           kernel_index++;
         }
       }
@@ -278,7 +298,6 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
       if (edge_detection) {
         // For edge detection, if the convolution result exceeds the threshold, mark the pixel in pink.
         if (result > threshold) {
-          VERBOSE_PRINT("Edge detected, result %d", result);
           *yp = 165;  // Y channel
           *up = 178;  // U channel
           *vp = 192;  // V channel
