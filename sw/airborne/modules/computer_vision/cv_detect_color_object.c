@@ -81,67 +81,83 @@ struct color_object_t {
 };
 struct color_object_t global_filters[2];
 
-// Function
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
-                              uint8_t lum_min, uint8_t lum_max,
-                              uint8_t cb_min, uint8_t cb_max,
-                              uint8_t cr_min, uint8_t cr_max);
 
-/*
- * object_detector
- * @param img - input image to process
- * @param filter - which detection filter to process
- * @return img
- */
 static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 {
-  uint8_t lum_min, lum_max;
-  uint8_t cb_min, cb_max;
-  uint8_t cr_min, cr_max;
-  bool draw;
-
-  switch (filter){
+  // We still check the filter number if needed.
+  // (In this example, we ignore 'draw' since we're applying a Gaussian blur.)
+  switch (filter) {
     case 1:
-      lum_min = cod_lum_min1;
-      lum_max = cod_lum_max1;
-      cb_min = cod_cb_min1;
-      cb_max = cod_cb_max1;
-      cr_min = cod_cr_min1;
-      cr_max = cod_cr_max1;
-      draw = cod_draw1;
       break;
     case 2:
-      lum_min = cod_lum_min2;
-      lum_max = cod_lum_max2;
-      cb_min = cod_cb_min2;
-      cb_max = cod_cb_max2;
-      cr_min = cod_cr_min2;
-      cr_max = cod_cr_max2;
-      draw = cod_draw2;
       break;
     default:
       return img;
+  }
+
+  // Define a local fixed 3x3 Gaussian kernel structure.
+  // For a Gaussian blur, the kernel coefficients are:
+  //   1  2  1
+  //   2  4  2
+  //   1  2  1
+  // and they sum to 16 (the normalization factor).
+  struct kernel3x3 {
+    uint8_t size;      // 3 for a 3x3 kernel
+    uint8_t boundary;  // 1 (one pixel border)
+    int8_t values[9];  // Kernel coefficients (using signed values)
+    // weight = 16
   };
 
-  int32_t x_c, y_c;
+  struct kernel5x5 {
+    uint8_t size;      // 5 for a 5x5 kernel
+    uint8_t boundary;  // 2 (two pixels border)
+    int8_t values[25]; // Kernel coefficients (using signed values)
+    // weight = 273
+  };
 
-  // Filter and find centroid
-  uint32_t count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
-  // Replace the original debug print lines with:
-  VERBOSE_PRINT("Color count: %u, x_c: %d, y_c: %d\n", count, x_c, y_c);
-  VERBOSE_PRINT("centroid: (%d, %d) r: %4.2f a: %4.2f\n", x_c, y_c,
-        hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
+  struct kernel3x3 kernel_3x3_gauss = {
+    .size = 3,
+    .boundary = 1,
+    .values = { 1, 2, 1,
+                2, 4, 2,
+                1, 2, 1 }
+  };
 
+  struct kernel5x5 kernel_5x5_gauss = {
+    .size = 5,
+    .boundary = 2,
+    .values = {
+       1,  4,  7,  4,  1,
+       4, 16, 26, 16,  4,
+       7, 26, 41, 26,  7,
+       4, 16, 26, 16,  4,
+       1,  4,  7,  4,  1
+    }
+  };
 
-  pthread_mutex_lock(&mutex);
-  global_filters[filter-1].color_count = count;
-  global_filters[filter-1].x_c = x_c;
-  global_filters[filter-1].y_c = y_c;
-  global_filters[filter-1].updated = true;
-  pthread_mutex_unlock(&mutex);
+  struct kernel5x5 kernel_5x5_sobel = {
+    .size = 5,
+    .boundary = 2, 
+    .values = {
+        -2, -1,  0,  1,  2,
+        -3, -2,  0,  2,  3,
+        -4, -3,  0,  3,  4,
+        -3, -2,  0,  2,  3,
+        -2, -1,  0,  1,  2
+    }
+};
+
+  // Call apply_kernel to perform the convolution with a Gaussian filter.
+  // edge_detection is false so that the function performs a weighted averaging.
+  // The weight (normalization factor) is 16.
+  apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 273);
+  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel, true, 1);
+
+  VERBOSE_PRINT("Applied Gaussian filter convolution\n");
 
   return img;
 }
+
 
 struct image_t *object_detector1(struct image_t *img, uint8_t camera_id);
 struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attribute__((unused)))
@@ -215,128 +231,70 @@ void free_image(struct image_t *img) {
     }
 }
 
+struct kernel{
+  uint8_t size; // how large is kernel (always square NxN) so for a 3x3 size=3
+  uint8_t boundary; // how much boundary do we have (for 3, its 1 pixel, 5 gives 2 pixels etc.)
+  uint8_t values[];
+};
 
-
-/*
- * find_object_centroid
- *
- * Finds the centroid of pixels in an image within filter bounds.
- * Also returns the amount of pixels that satisfy these filter bounds.
- *
- * @param img - input image to process formatted as YUV422.
- * @param p_xc - x coordinate of the centroid of color object
- * @param p_yc - y coordinate of the centroid of color object
- * @param lum_min - minimum y value for the filter in YCbCr colorspace
- * @param lum_max - maximum y value for the filter in YCbCr colorspace
- * @param cb_min - minimum cb value for the filter in YCbCr colorspace
- * @param cb_max - maximum cb value for the filter in YCbCr colorspace
- * @param cr_min - minimum cr value for the filter in YCbCr colorspace
- * @param cr_max - maximum cr value for the filter in YCbCr colorspace
- * @param draw - whether or not to draw on image
- * @return number of pixels of image within the filter bounds.
- */
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
-                              uint8_t lum_min, uint8_t lum_max,
-                              uint8_t cb_min, uint8_t cb_max,
-                              uint8_t cr_min, uint8_t cr_max)
-{
-  uint32_t cnt = 0;
-  uint32_t tot_x = 0;
-  uint32_t tot_y = 0;
-  uint8_t threshold = 160;
-
-  // Create a deep copy of the image so we can process it without modifying the original.
-  struct image_t copy_image = deep_copy_image(img);
-  if (!copy_image.buf) {
-      VERBOSE_PRINT("IMAGE BUFFER IS EMPTY, RETURNING WITHOUT RESULT");
-      return 1;
+void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight) {
+  struct image_t static_copy = deep_copy_image(img);
+  if (!static_copy.buf) {
+    return;
   }
 
-  // For edge detection we use the deep copy (unmodified_buffer) for reading,
-  // and update the original buffer (buffer) if 'draw' is true.
-  uint8_t *buffer = (uint8_t *)img->buf;                 // original image buffer (for drawing)
-  uint8_t *unmodified_buffer = (uint8_t *)copy_image.buf;  // deep-copied buffer for processing
+  uint8_t threshold = 200; 
+  uint8_t *buffer = (uint8_t *)img->buf;
+  uint8_t *static_buffer = (uint8_t *)static_copy.buf;
+  uint8_t boundary = kernel->boundary;
 
-  // Initialize the kernel 
-  static uint32_t kernel[9] = {
-    -1, 0, 1,
-    -2, 0, 2,
-    -1, 0, 1
-  };
-
-  // Go through all the pixels
-  // skipping the first and last rows and column because of kernel convolution
-  for (uint16_t y = 1; y < img->h - 1; y++) { 
-    for (uint16_t x = 1; x < img->w - 1; x++) {
-      // Check if the color is inside the specified values
+  for (uint16_t y = boundary; y < img->h - boundary; y++) {
+    for (uint16_t x = boundary; x < img->w - boundary; x++) {
       uint8_t *yp, *up, *vp;
-      uint32_t kernel_result;
-      // kernel calculations (uneven case)
-      uint32_t calc_00, calc_01, calc_02;
-      uint32_t calc_10, calc_11, calc_12;
-      uint32_t calc_20, calc_21, calc_22;
+      uint16_t result = 0;
+      uint8_t kernel_index = 0;
 
+      // Determine the Y channel pointer (assuming Y is at offset +1 for even x)
+      yp = &buffer[y * 2 * img->w + 2 * x + 1];
+
+      // Set U and V pointers based on even/odd x positioning in YUV422
       if (x % 2 == 0) {
-        // Even x
-        up = &buffer[y * 2 * img->w + 2 * x];      // U
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
-        //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
-
-        // Calculating kernel operations (commented out middle column because of zero values in kernel)
-        calc_00 = kernel[0] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x - 2];
-        // calc_01 = kernel[1] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x];
-        calc_02 = kernel[2] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x + 2];
-        calc_10 = kernel[3] * unmodified_buffer[y * 2 * img->w + 2 * x - 2];
-        // calc_11 = kernel[4] * unmodified_buffer[y * 2 * img->w + 2 * x];
-        calc_12 = kernel[5] * unmodified_buffer[y * 2 * img->w + 2 * x + 2];
-        calc_20 = kernel[6] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x - 2];
-        // calc_21 = kernel[7] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x];
-        calc_22 = kernel[8] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x + 2];
-        kernel_result = calc_00 + calc_02 + calc_10 + calc_12 + calc_20 + calc_22;
-
+        up = &buffer[y * 2 * img->w + 2 * x];
+        vp = &buffer[y * 2 * img->w + 2 * x + 2];
       } else {
-        // Uneven x
-        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
-        //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x];      // V
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
-
-        // Calculating kernel operations (commented out middle column because of zero values in kernel)
-        calc_00 = kernel[0] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x - 1];
-        // calc_01 = kernel[1] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x + 1];
-        calc_02 = kernel[2] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x + 3];
-        calc_10 = kernel[3] * unmodified_buffer[y * 2 * img->w + 2 * x - 1];
-        // calc_11 = kernel[4] * unmodified_buffer[y * 2 * img->w + 2 * x + 1];
-        calc_12 = kernel[5] * unmodified_buffer[y * 2 * img->w + 2 * x + 3];
-        calc_20 = kernel[6] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x - 1];
-        // calc_21 = kernel[7] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x + 1];
-        calc_22 = kernel[8] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x + 3];
-        kernel_result = calc_00 + calc_02 + calc_10 + calc_12 + calc_20 + calc_22;
-
-
+        up = &buffer[y * 2 * img->w + 2 * x - 2];
+        vp = &buffer[y * 2 * img->w + 2 * x];
       }
-      if (kernel_result > threshold) {
-        if (draw){
-          *yp = 165;  // make pixel pink in image
-          *up = 178;
-          *vp = 192;
+
+      // Convolution: iterate over the kernel window
+      for (int8_t row = -((int8_t)kernel->boundary); row <= (int8_t)kernel->boundary; row++) {
+        for (int8_t col = -((int8_t)kernel->boundary); col <= (int8_t)kernel->boundary; col++) {
+          result += kernel->values[kernel_index] *
+                    static_buffer[(y + row) * 2 * img->w + 2 * x + 2 * col + 1];
+          kernel_index++;
         }
+      }
+
+      if (edge_detection) {
+        // For edge detection, if the convolution result exceeds the threshold, mark the pixel in pink.
+        if (result > threshold) {
+          VERBOSE_PRINT("Edge detected, result %d", result);
+          *yp = 165;  // Y channel
+          *up = 178;  // U channel
+          *vp = 192;  // V channel
+        }
+      } else {
+        // For a Gaussian blur, replace the luminance with the normalized convolution result.
+        // Here, 'weight' should be the sum of the kernel weights (to normalize the average).
+        *yp = result / weight;
       }
     }
   }
-  if (cnt > 0) {
-    *p_xc = (int32_t)roundf(tot_x / ((float) cnt) - img->w * 0.5f);
-    *p_yc = (int32_t)roundf(img->h * 0.5f - tot_y / ((float) cnt));
-  } else {
-    *p_xc = 0;
-    *p_yc = 0;
-  }
-  
-  // Free the deep copy's buffer.
-  free_image(&copy_image);
-  return cnt;
+
+  free_image(&static_copy);
+  return;
 }
+
 
 void color_object_detector_periodic(void)
 {

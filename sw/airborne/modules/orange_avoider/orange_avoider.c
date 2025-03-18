@@ -28,7 +28,7 @@
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
 
-#define ORANGE_AVOIDER_VERBOSE TRUE
+#define ORANGE_AVOIDER_VERBOSE FALSE
 
 #define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if ORANGE_AVOIDER_VERBOSE
