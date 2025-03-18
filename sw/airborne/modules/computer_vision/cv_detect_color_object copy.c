@@ -192,31 +192,6 @@ void color_object_detector_init(void)
 #endif
 }
 
-struct image_t deep_copy_image(struct image_t *img) {
-  // Create a shallow copy of the image_t struct.
-  struct image_t copy = *img;
-
-  // Allocate memory for the new image buffer.
-  copy.buf = malloc(img->buf_size);
-  if (copy.buf == NULL) {
-      return copy;  
-  }
-
-  // Copy the contents of the original buffer into the new buffer.
-  memcpy(copy.buf, img->buf, img->buf_size);
-
-  return copy;
-}
-
-void free_image(struct image_t *img) {
-    if (img && img->buf) {
-        free(img->buf);
-        img->buf = NULL;  // Avoid dangling pointer
-    }
-}
-
-
-
 /*
  * find_object_centroid
  *
@@ -243,84 +218,34 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t cnt = 0;
   uint32_t tot_x = 0;
   uint32_t tot_y = 0;
-  uint8_t threshold = 160;
-
-  // Create a deep copy of the image so we can process it without modifying the original.
-  struct image_t copy_image = deep_copy_image(img);
-  if (!copy_image.buf) {
-      VERBOSE_PRINT("IMAGE BUFFER IS EMPTY, RETURNING WITHOUT RESULT");
-      return 1;
-  }
-
-  // For edge detection we use the deep copy (unmodified_buffer) for reading,
-  // and update the original buffer (buffer) if 'draw' is true.
-  uint8_t *buffer = (uint8_t *)img->buf;                 // original image buffer (for drawing)
-  uint8_t *unmodified_buffer = (uint8_t *)copy_image.buf;  // deep-copied buffer for processing
-
-  // Initialize the kernel 
-  static uint32_t kernel[9] = {
-    -1, 0, 1,
-    -2, 0, 2,
-    -1, 0, 1
-  };
+  uint8_t *buffer = img->buf;
 
   // Go through all the pixels
-  // skipping the first and last rows and column because of kernel convolution
-  for (uint16_t y = 1; y < img->h - 1; y++) { 
-    for (uint16_t x = 1; x < img->w - 1; x++) {
+  for (uint16_t y = 0; y < img->h; y++) {
+    for (uint16_t x = 0; x < img->w; x ++) {
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
-      uint32_t kernel_result;
-      // kernel calculations (uneven case)
-      uint32_t calc_00, calc_01, calc_02;
-      uint32_t calc_10, calc_11, calc_12;
-      uint32_t calc_20, calc_21, calc_22;
-
       if (x % 2 == 0) {
         // Even x
         up = &buffer[y * 2 * img->w + 2 * x];      // U
         yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
         vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
         //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
-
-        // Calculating kernel operations (commented out middle column because of zero values in kernel)
-        calc_00 = kernel[0] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x - 2];
-        // calc_01 = kernel[1] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x];
-        calc_02 = kernel[2] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x + 2];
-        calc_10 = kernel[3] * unmodified_buffer[y * 2 * img->w + 2 * x - 2];
-        // calc_11 = kernel[4] * unmodified_buffer[y * 2 * img->w + 2 * x];
-        calc_12 = kernel[5] * unmodified_buffer[y * 2 * img->w + 2 * x + 2];
-        calc_20 = kernel[6] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x - 2];
-        // calc_21 = kernel[7] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x];
-        calc_22 = kernel[8] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x + 2];
-        kernel_result = calc_00 + calc_02 + calc_10 + calc_12 + calc_20 + calc_22;
-
       } else {
         // Uneven x
         up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
         //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
         vp = &buffer[y * 2 * img->w + 2 * x];      // V
         yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
-
-        // Calculating kernel operations (commented out middle column because of zero values in kernel)
-        calc_00 = kernel[0] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x - 1];
-        // calc_01 = kernel[1] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x + 1];
-        calc_02 = kernel[2] * unmodified_buffer[(y - 1) * 2 * img->w + 2 * x + 3];
-        calc_10 = kernel[3] * unmodified_buffer[y * 2 * img->w + 2 * x - 1];
-        // calc_11 = kernel[4] * unmodified_buffer[y * 2 * img->w + 2 * x + 1];
-        calc_12 = kernel[5] * unmodified_buffer[y * 2 * img->w + 2 * x + 3];
-        calc_20 = kernel[6] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x - 1];
-        // calc_21 = kernel[7] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x + 1];
-        calc_22 = kernel[8] * unmodified_buffer[(y + 1) * 2 * img->w + 2 * x + 3];
-        kernel_result = calc_00 + calc_02 + calc_10 + calc_12 + calc_20 + calc_22;
-
-
       }
-      if (kernel_result > threshold) {
+      if ( (*yp >= lum_min) && (*yp <= lum_max) &&
+           (*up >= cb_min ) && (*up <= cb_max ) &&
+           (*vp >= cr_min ) && (*vp <= cr_max )) {
+        cnt ++;
+        tot_x += x;
+        tot_y += y;
         if (draw){
-          *yp = 165;  // make pixel pink in image
-          *up = 178;
-          *vp = 192;
+          *yp = 255;  // make pixel brighter in image
         }
       }
     }
@@ -332,9 +257,6 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
     *p_xc = 0;
     *p_yc = 0;
   }
-  
-  // Free the deep copy's buffer.
-  free_image(&copy_image);
   return cnt;
 }
 
