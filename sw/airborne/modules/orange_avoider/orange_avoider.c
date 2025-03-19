@@ -28,7 +28,7 @@
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
 
-#define ORANGE_AVOIDER_VERBOSE FALSE
+#define ORANGE_AVOIDER_VERBOSE TRUE
 
 #define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if ORANGE_AVOIDER_VERBOSE
@@ -77,9 +77,28 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
                                int32_t quality, int16_t __attribute__((unused)) extra)
+
+
 {
   color_count = quality;
 }
+
+int16_t first_value_cb = 0;
+int16_t second_value_cb = 0;
+
+
+#ifndef TEST_GROUP_11_DETECTION_ID
+#define TEST_GROUP_11_DETECTION_ID ABI_BROADCAST
+#endif
+static abi_event testing_ev; 
+static void testing_cb(uint8_t __attribute__((unused)) sender_id, int16_t first_value, int16_t second_value) {
+ first_value_cb = first_value;
+ second_value_cb = second_value;
+}
+
+
+
+
 
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
@@ -92,6 +111,7 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  AbiBindMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, &testing_ev, testing_cb);
 }
 
 /*
@@ -103,11 +123,12 @@ void orange_avoider_periodic(void)
   if(!autopilot_in_flight()){
     return;
   }
+  VERBOSE_PRINT("Values from abi messages are: (%d, %d)", first_value_cb, second_value_cb);
 
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  // VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
 
   // update our safe confidence using color threshold
   if(color_count < color_count_threshold){
@@ -190,7 +211,7 @@ uint8_t increase_nav_heading(float incrementDegrees)
   // set heading, declared in firmwares/rotorcraft/navigation.h
   nav.heading = new_heading;
 
-  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+  // VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
   return false;
 }
 
@@ -215,9 +236,9 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
   // Now determine where to place the waypoint you want to go to
   new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
   new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-  VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
-                POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-                stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
+  // VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
+  //               POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
+  //               stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
   return false;
 }
 
@@ -226,8 +247,8 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
  */
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 {
-  VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
-                POS_FLOAT_OF_BFP(new_coor->y));
+  // VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
+  //               POS_FLOAT_OF_BFP(new_coor->y));
   waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
   return false;
 }

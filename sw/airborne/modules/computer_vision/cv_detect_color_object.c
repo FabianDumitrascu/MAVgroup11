@@ -107,7 +107,6 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     int8_t values[9];  // Kernel coefficients (using signed values)
     // weight = 16
   };
-
   struct kernel5x5 {
     uint8_t size;      // 5 for a 5x5 kernel
     uint8_t boundary;  // 2 (two pixels border)
@@ -332,4 +331,6 @@ void color_object_detector_periodic(void)
         0, 0, local_filters[1].color_count, 1);
     local_filters[1].updated = false;
   }
+
+  AbiSendMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, 3, 4);
 }

@@ -644,5 +644,12 @@
 #define LIDAR_DATA_VL53L5CX_ID 1
 #endif
 
+/*
+ * Testing group 11 senders (id=38) 
+ */
+#ifndef TEST_GROUP_11_DETECTION_ID
+#define TEST_GROUP_11_DETECTION_ID 1
+#endif
+
 
 #endif /* ABI_SENDER_IDS_H */

@@ -10,8 +10,10 @@
     },
     "files.associations": {
         "Makefile.*": "makefile",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "string": "c"
     },
     "C_Cpp.dimInactiveRegions": false,
     "esbonio.sphinx.confDir": "",
+    "cmake.ignoreCMakeListsMissing": true,
 }

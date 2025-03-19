@@ -188,6 +188,7 @@
       <field name="quality"      type="int32_t">Detection quality</field>
       <field name="extra"        type="int16_t">Extra field for options like detector source etc</field>
     </message>
+   
 
     <message name="JOYSTICK" id="28">
       <!--
@@ -256,6 +257,12 @@
       <field name="subtype" type="uint8_t">subtype of data, driver dependent (e.g. distance, reflectance, ...)</field>
       <field name="data" type="uint8_t*">pointer to the data of the matrix</field>
     </message>
+
+    <message name="TEST_GROUP_11_DETECTION" id="38">
+      <field name="first_value"      type="int16_t">First test value</field>
+      <field name="second_value"      type="int16_t">Second test value</field>
+    </message>
+
 
   </msg_class>
 
