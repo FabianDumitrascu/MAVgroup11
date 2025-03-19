@@ -281,6 +281,9 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
   uint8_t *buffer = (uint8_t *)img->buf;
   uint8_t *static_buffer = (uint8_t *)static_copy.buf;
   uint8_t boundary = kernel->boundary;
+  edges_in_sector_1 = 0;
+  edges_in_sector_2 = 0;
+  edges_in_sector_3 = 0;
 
   for (uint16_t y = boundary; y < img->h - boundary; y++) {
     for (uint16_t x = boundary; x < img->w - boundary; x++) {
