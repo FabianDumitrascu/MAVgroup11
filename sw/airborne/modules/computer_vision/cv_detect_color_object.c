@@ -72,6 +72,10 @@ uint8_t cod_cr_max2 = 0;
 bool cod_draw1 = false;
 bool cod_draw2 = false;
 
+uint16_t edges_in_sector_1 = 0;
+uint16_t edges_in_sector_2 = 0;
+uint16_t edges_in_sector_3 = 0;
+
 // define global variables
 struct color_object_t {
   int32_t x_c;
@@ -158,6 +162,20 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     }
   };
 
+  struct kernel5x5 kernel_5x5_sobel_vert_mirror = {
+    .size = 5,
+    .boundary = 2, 
+    .values = {
+        2, 3, 4, 3, 2,
+        1, 2, 3, 2, 1,
+        0,  0,  0,  0,  0,
+       -1,  -2,  -3,  -2,  -1,
+       -2,  -3,  -4,  -3,  -2
+    }
+  };
+
+
+
 
 
   // Call apply_kernel to perform the convolution with a Gaussian filter.
@@ -167,6 +185,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 350);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_hor, true, 1);
   apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert, true, 1);
+  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert_mirror, true, 1);
 
   // VERBOSE_PRINT("Applied Gaussian filter convolution\n");
 
@@ -297,9 +316,24 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
       if (edge_detection) {
         // For edge detection, if the convolution result exceeds the threshold, mark the pixel in pink.
         if (result > threshold) {
-          *yp = 165;  // Y channel
-          *up = 178;  // U channel
-          *vp = 192;  // V channel
+
+          if (y < img->h / 3){
+            *yp = 165;  // Y channel
+            *up = 178;  // U channel
+            *vp = 192;  // V channel
+          }
+          if (y > img->h / 3 && y < img->h * 2 / 3){
+            *yp = 165;  // Y channel
+            *up = 100;  // U channel
+            *vp = 100;  // V channel
+          }
+          if (y > img->h * 2/ 3){
+            *yp = 165;  // Y channel
+            *up = 50;  // U channel
+            *vp = 150;  // V channel
+          }
+
+
         }
       } else {
         // For a Gaussian blur, replace the luminance with the normalized convolution result.
