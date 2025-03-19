@@ -321,16 +321,19 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
             *yp = 165;  // Y channel
             *up = 178;  // U channel
             *vp = 192;  // V channel
+            edges_in_sector_1++;
           }
           if (y > img->h / 3 && y < img->h * 2 / 3){
             *yp = 165;  // Y channel
             *up = 100;  // U channel
             *vp = 100;  // V channel
+            edges_in_sector_2++;
           }
           if (y > img->h * 2/ 3){
             *yp = 165;  // Y channel
             *up = 50;  // U channel
             *vp = 150;  // V channel
+            edges_in_sector_3++;
           }
 
 
@@ -367,4 +370,6 @@ void color_object_detector_periodic(void)
   }
 
   AbiSendMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, 3, 4);
+  AbiSendMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);
+
 }

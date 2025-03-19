@@ -97,7 +97,19 @@ static void testing_cb(uint8_t __attribute__((unused)) sender_id, int16_t first_
 }
 
 
+uint16_t edge_count_sector_1_cb = 0;
+uint16_t edge_count_sector_2_cb = 0;
+uint16_t edge_count_sector_3_cb = 0;
 
+#ifndef EDGE_DETECTION_GROUP_11_ID
+#define EDGE_DETECTION_GROUP_11_ID ABI_BROADCAST
+#endif
+static abi_event edge_detection_ev; 
+static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint16_t edge_count_sector_1, uint16_t edge_count_sector_2, uint16_t edge_count_sector_3) {
+  edge_count_sector_1_cb = edge_count_sector_1;
+  edge_count_sector_2_cb = edge_count_sector_2;
+  edge_count_sector_3_cb = edge_count_sector_3;
+}
 
 
 /*
@@ -112,6 +124,7 @@ void orange_avoider_init(void)
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
   AbiBindMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, &testing_ev, testing_cb);
+  AbiBindMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, &edge_detection_ev, edge_count_cb);
 }
 
 /*
@@ -123,7 +136,7 @@ void orange_avoider_periodic(void)
   if(!autopilot_in_flight()){
     return;
   }
-  VERBOSE_PRINT("Values from abi messages are: (%d, %d)", first_value_cb, second_value_cb);
+  VERBOSE_PRINT("Edge count (sector1, sector2, sector3) = (%d, %d, %d)\n", edge_count_sector_1_cb, edge_count_sector_2_cb, edge_count_sector_3_cb);
 
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;

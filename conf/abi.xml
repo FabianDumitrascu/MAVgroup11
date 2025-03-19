@@ -263,6 +263,13 @@
       <field name="second_value"      type="int16_t">Second test value</field>
     </message>
 
+    <message name="EDGE_DETECTION_GROUP_11" id="39">
+      <field name="edge_count_sector_1" type="uint16_t">Amount of edges in left most sector</field>
+      <field name="edge_count_sector_2" type="uint16_t">Amount of edges in middle sector</field>
+      <field name="edge_count_sector_3" type="uint16_t">Amount of edges in right most sector</field>
+
+    </message>
+
 
   </msg_class>
 

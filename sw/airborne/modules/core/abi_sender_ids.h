@@ -651,5 +651,14 @@
 #define TEST_GROUP_11_DETECTION_ID 1
 #endif
 
+/*
+ * Testing group 11 senders (id=39) 
+ */
+#ifndef EDGE_DETECTION_GROUP_11_ID
+#define EDGE_DETECTION_GROUP_11_ID 1
+#endif
+
+
+
 
 #endif /* ABI_SENDER_IDS_H */
