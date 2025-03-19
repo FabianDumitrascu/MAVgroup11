@@ -42,7 +42,8 @@ static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeter
 static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
-
+// Function prototype
+void reset_confidence_scores(void);
 enum navigation_state_t {
   SAFE,
   OBSTACLE_FOUND,
@@ -60,6 +61,10 @@ int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that 
 float heading_increment = 10.f;          // heading angle increment [deg]
 float maxDistance = 3;               // max waypoint displacement [m]
 
+int16_t center_confidence = 0;
+int16_t right_confidence = 0;
+int16_t left_confidence = 0;
+
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
 /*
@@ -72,6 +77,22 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
 #endif
+int16_t pixel_count_center = 0;
+int16_t pixel_count_left = 0;
+int16_t pixel_count_right = 0;
+
+#ifndef TEST_DETECTION
+#define TEST_DETECTION ABI_BROADCAST
+#endif
+static abi_event segmented_counter_ev;
+static void segmented_counter_cb(uint8_t _attribute_((unused)) sender_id,
+			  int16_t count_left, int16_t count_center, int16_t count_right)
+{
+  pixel_count_left = count_left;
+  pixel_count_center = count_center;
+  pixel_count_right = count_right;
+}
+
 static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
@@ -80,6 +101,8 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 {
   color_count = quality;
 }
+  
+  
 
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
@@ -91,12 +114,20 @@ void orange_avoider_init(void)
   chooseRandomIncrementAvoidance();
 
   // bind our colorfilter callbacks to receive the color filter outputs
-  AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, segmented_counter_cb);
+}
+
+void reset_confidence_scores(void)
+{
+  center_confidence = 0;
+  left_confidence = 0;
+  right_confidence = 0;
 }
 
 /*
  * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
  */
+ 
 void orange_avoider_periodic(void)
 {
   // only evaluate our state machine if we are flying
@@ -106,9 +137,14 @@ void orange_avoider_periodic(void)
 
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
-
   VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
-
+  
+  int32_t color_count_threshold_left = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);// change the threshooooooooooooooold on fridayyyyyyyyyyyyyyyyyy
+  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  
+  int32_t color_count_threshold_right = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);// change the threshooooooooooooooold on fridayyyyyyyyyyyyyyyyyy
+  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  /*
   // update our safe confidence using color threshold
   if(color_count > color_count_threshold){
     obstacle_free_confidence++;
@@ -118,11 +154,37 @@ void orange_avoider_periodic(void)
 
   // bound obstacle_free_confidence
   Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  */
+  
+  if(pixel_count_left < color_count_threshold_left && pixel_count_right < color_count_threshold_right){
+    left_confidence-=2;
+    right_confidence-=2;
+    
+  } else if(pixel_count_left >= pixel_count_right){
+       left_confidence ++;
+       right_confidence-=2;
+  }else {
+       left_confidence -=2;
+       right_confidence++;
+  }
+  
+  if(pixel_count_center > color_count_threshold){
+    obstacle_free_confidence++;
+  } else {
+    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
+  }
 
+  // bound obstacle_free_confidence
+  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  Bound(left_confidence, 0, max_trajectory_confidence);
+  Bound(right_confidence, 0, max_trajectory_confidence);
+  
   float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
 
   switch (navigation_state){
     case SAFE:
+    
+      reset_confidence_scores();
       // Move waypoint forward
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
@@ -140,9 +202,22 @@ void orange_avoider_periodic(void)
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_RETREAT);
       waypoint_move_here_2d(WP_TRAJECTORY);
-
-      // randomly select new search direction
-      chooseRandomIncrementAvoidance();
+      
+      if (left_confidence == 0 && right_confidence ==0)
+      {
+      increase_nav_heading(-90.f);
+      }
+      else if (left_confidence > right_confidence) {
+        // Turn left
+        increase_nav_heading(-30.f); // Turn 30 degrees left
+        VERBOSE_PRINT("Turning left, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
+      } else {
+        // Turn right
+        increase_nav_heading(30.f); // Turn 30 degrees right
+        VERBOSE_PRINT("Turning right, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
+      }
+      
+      reset_confidence_scores();
 
       navigation_state = SEARCH_FOR_SAFE_HEADING;
 
