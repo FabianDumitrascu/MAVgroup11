@@ -25,6 +25,14 @@
     <define name="COLOR_OBJECT_DETECTOR_CR_MIN2" value="0" description="Filter 2 min red chroma"/>
     <define name="COLOR_OBJECT_DETECTOR_CR_MAX2" value="0" description="Filter 2 max red chroma"/>
     <define name="COLOR_OBJECT_DETECTOR_DRAW2" value="FALSE|TRUE" description="Whether or not to draw on image"/>
+
+    <define name="EDGE_DETECTOR_LUM_MIN" value="0" description="Edge detector min luminance"/>
+    <define name="EDGE_DETECTOR_LUM_MAX" value="0" description="Edge detector max luminance"/>
+    <define name="EDGE_DETECTOR_CB_MIN" value="0" description="Edge detector min blue chroma"/>
+    <define name="EDGE_DETECTOR_CB_MAX" value="0" description="Edge detector max blue chroma"/>
+    <define name="EDGE_DETECTOR_CR_MIN" value="0" description="Edge detector min red chroma"/>
+    <define name="EDGE_DETECTOR_CR_MAX" value="0" description="Edge detector max red chroma"/>
+    <define name="EDGE_DETECTOR_THRESHOLD" value="0" description="Edge detector threshold"/>
   </doc>
 
   <settings>
@@ -44,6 +52,15 @@
          <dl_setting var="cod_cr_min2"   min="0" step="1" max="255" shortname="v_min2"/>
          <dl_setting var="cod_cr_max2"   min="0" step="1" max="255" shortname="v_max2"/>
          <dl_setting var="cod_draw2"  min="0" step="1" max="1" values="False|True" shortname="draw 2" />
+      </dl_settings>
+      <dl_settings name="EdgeDetectValues">
+         <dl_setting var="edge_lum_min" min="0" step="1" max="255" shortname="y_edge_min"/>
+         <dl_setting var="edge_lum_max" min="0" step="1" max="255" shortname="y_edge_max"/>
+         <dl_setting var="edge_cb_min"   min="0" step="1" max="255" shortname="u_edge_min"/>
+         <dl_setting var="edge_cb_max"   min="0" step="1" max="255" shortname="u_edge_max"/>
+         <dl_setting var="edge_cr_min"   min="0" step="1" max="255" shortname="v_edge_min"/>
+         <dl_setting var="edge_cr_max"   min="0" step="1" max="255" shortname="v_edge_max"/>
+         <dl_setting var="edge_threshold"   min="0" step="1" max="255" shortname="threshold_edge"/>
       </dl_settings>
     </dl_settings>
   </settings>

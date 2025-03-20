@@ -69,12 +69,24 @@ uint8_t cod_cb_max2 = 0;
 uint8_t cod_cr_min2 = 0;
 uint8_t cod_cr_max2 = 0;
 
+uint8_t edge_lum_min = 0;
+uint8_t edge_lum_max = 0;
+uint8_t edge_cb_min = 0;
+uint8_t edge_cb_max = 0;
+uint8_t edge_cr_min = 0;
+uint8_t edge_cr_max = 0;
+uint8_t edge_threshold = 0;
+
 bool cod_draw1 = false;
 bool cod_draw2 = false;
 
 uint16_t edges_in_sector_1 = 0;
 uint16_t edges_in_sector_2 = 0;
 uint16_t edges_in_sector_3 = 0;
+
+uint16_t green_in_sector_1 = 0;
+uint16_t green_in_sector_2 = 0;
+uint16_t green_in_sector_3 = 0;
 
 // define global variables
 struct color_object_t {
@@ -175,12 +187,17 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   };
 
 
+  edges_in_sector_1 = 0;
+  edges_in_sector_2 = 0;
+  edges_in_sector_3 = 0;
 
+  green_in_sector_1 = 0;
+  green_in_sector_2 = 0;
+  green_in_sector_3 = 0;
 
 
   // Call apply_kernel to perform the convolution with a Gaussian filter.
-  // edge_detection is false so that the function performs a weighted averaging.
-  // The weight (normalization factor) is 16.
+  // edge_detection is false so that the_OBJECTs 16.
   // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 273);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 350);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_hor, true, 1);
@@ -240,6 +257,19 @@ void color_object_detector_init(void)
 
   cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA2, object_detector2, COLOR_OBJECT_DETECTOR_FPS2, 1);
 #endif
+
+
+// initialize edge detection variables
+#ifdef EDGE_DETECTOR_LUM_MIN
+  edge_lum_min = EDGE_DETECTOR_LUM_MIN;
+  edge_lum_max = EDGE_DETECTOR_LUM_MAX;
+  edge_cb_min = EDGE_DETECTOR_CB_MIN;
+  edge_cb_max = EDGE_DETECTOR_CB_MAX;
+  edge_cr_min = EDGE_DETECTOR_CR_MIN;
+  edge_cr_max = EDGE_DETECTOR_CR_MAX;
+  edge_threshold = EDGE_DETECTOR_THRESHOLD;
+#endif
+
 }
 
 struct image_t deep_copy_image(struct image_t *img) {
@@ -277,13 +307,10 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
     return;
   }
 
-  uint8_t threshold = 200; 
   uint8_t *buffer = (uint8_t *)img->buf;
   uint8_t *static_buffer = (uint8_t *)static_copy.buf;
   uint8_t boundary = kernel->boundary;
-  edges_in_sector_1 = 0;
-  edges_in_sector_2 = 0;
-  edges_in_sector_3 = 0;
+
 
   for (uint16_t y = boundary; y < img->h - boundary; y++) {
     for (uint16_t x = boundary; x < img->w - boundary; x++) {
@@ -318,29 +345,48 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
 
       if (edge_detection) {
         // For edge detection, if the convolution result exceeds the threshold, mark the pixel in pink.
-        if (result > threshold) {
-
+        bool isgreen = (*yp > cod_lum_min1 && *yp < cod_lum_max1 &&
+                        *up > cod_cb_min1 && *up < cod_cb_max1 &&
+                        *vp > cod_cr_min1 && *vp < cod_cr_max1);
+        if (isgreen) {
           if (y < img->h / 3){
-            *yp = 165;  // Y channel
-            *up = 178;  // U channel
-            *vp = 192;  // V channel
-            edges_in_sector_1++;
+            green_in_sector_1++;
+            *yp = 200;  // Y channel
+            *up = 84;  // U channel
+            *vp = 255;  // V channel
+            if (result > edge_threshold) {
+              edges_in_sector_1++;
+              *yp = 76;  // Y channel
+              *up = 100;  // U channel
+              *vp = 90;  // V channel
+            }
           }
           if (y > img->h / 3 && y < img->h * 2 / 3){
-            *yp = 165;  // Y channel
-            *up = 100;  // U channel
-            *vp = 100;  // V channel
-            edges_in_sector_2++;
+            green_in_sector_2++;
+            *yp = 200;  // Y channel
+            *up = 43;  // U channel
+            *vp = 21;  // V channel
+            if (result > edge_threshold) {
+              edges_in_sector_2++;
+              *yp = 149;  // Y channel
+              *up = 100;  // U channel
+              *vp = 60;  // V channel
+            }
           }
           if (y > img->h * 2/ 3){
-            *yp = 165;  // Y channel
-            *up = 50;  // U channel
-            *vp = 150;  // V channel
-            edges_in_sector_3++;
+            green_in_sector_3++;
+            *yp = 200;  // Y channel
+            *up = 255;  // U channel
+            *vp = 107;  // V channel
+            if (result > edge_threshold) {
+              edges_in_sector_3++;
+              *yp = 29;  // Y channel
+              *up = 100;  // U channel
+              *vp = 150;  // V channel
+            }
           }
-
-
         }
+
       } else {
         // For a Gaussian blur, replace the luminance with the normalized convolution result.
         // Here, 'weight' should be the sum of the kernel weights (to normalize the average).
@@ -348,6 +394,9 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
       }
     }
   }
+
+  VERBOSE_PRINT("Edges in sector 1,2,3: (%d, %d, %d)\n", edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);
+  VERBOSE_PRINT("Green in sector 1,2,3: (%d, %d, %d)\n", green_in_sector_1, green_in_sector_2, green_in_sector_3);
 
   free_image(&static_copy);
   return;

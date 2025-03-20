@@ -49,6 +49,15 @@ extern uint8_t cod_cr_max2;
 extern bool cod_draw1;
 extern bool cod_draw2;
 
+extern uint8_t edge_lum_min;
+extern uint8_t edge_lum_max;
+extern uint8_t edge_cb_min;
+extern uint8_t edge_cb_max;
+extern uint8_t edge_cr_min;
+extern uint8_t edge_cr_max;
+extern uint8_t edge_threshold;
+
+
 // Module functions
 extern void color_object_detector_init(void);
 extern void color_object_detector_periodic(void);
