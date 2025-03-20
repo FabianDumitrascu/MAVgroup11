@@ -647,8 +647,8 @@
 /*
  * Testing group 11 senders (id=38) 
  */
-#ifndef TEST_GROUP_11_DETECTION_ID
-#define TEST_GROUP_11_DETECTION_ID 1
+#ifndef GREEN_DETECTION_GROUP_11_ID
+#define GREEN_DETECTION_GROUP_11_ID 1
 #endif
 
 /*

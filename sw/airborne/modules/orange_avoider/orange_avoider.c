@@ -55,7 +55,7 @@ float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t color_count = 0;                // orange color count from color filter for obstacle detection
+int32_t color_count_middle = 0;                // orange color count from color filter for obstacle detection
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 2.25;               // max waypoint displacement [m]
@@ -69,8 +69,8 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
  * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
  * defined in this file does not need to be explicitly called, only bound in the init function
  */
-#ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
-#define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
+#ifndef GREEN_DETECTION_GROUP_11_ID
+#define GREEN_DETECTION_GROUP_11_ID ABI_BROADCAST
 #endif
 static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
@@ -80,7 +80,7 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
 
 
 {
-  color_count = quality;
+  color_count_middle = quality;
 }
 
 int16_t green_pixels_sector_1_cb = 0;
@@ -148,10 +148,8 @@ void orange_avoider_periodic(void)
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  // VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
-
   // update our safe confidence using color threshold
-  if(color_count < color_count_threshold){
+  if(color_count_middle < color_count_threshold){
     obstacle_free_confidence++;
   } else {
     obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections

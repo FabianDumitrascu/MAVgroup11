@@ -258,7 +258,7 @@
       <field name="data" type="uint8_t*">pointer to the data of the matrix</field>
     </message>
 
-    <message name="TEST_GROUP_11_DETECTION" id="38">
+    <message name="GREEN_DETECTION_GROUP_11" id="38">
       <field name="green_pixels_sector_1" type="int16_t">Amount of green pixels in left most sector</field>
       <field name="green_pixels_sector_2" type="int16_t">Amount of green pixels in middle sector</field>
       <field name="green_pixels_sector_3" type="int16_t">Amount of green pixels in right most sector</field>

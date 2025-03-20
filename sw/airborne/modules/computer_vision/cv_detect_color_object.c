@@ -421,7 +421,7 @@ void color_object_detector_periodic(void)
     local_filters[1].updated = false;
   }
 
-  AbiSendMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, green_in_sector_1, green_in_sector_2, green_in_sector_3);
+  AbiSendMsgGREEN_DETECTION_GROUP_11(GREEN_DETECTION_GROUP_11_ID, green_in_sector_1, green_in_sector_2, green_in_sector_3);
   AbiSendMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);
 
 }
