@@ -571,6 +571,10 @@
 #define COLOR_OBJECT_DETECTION2_ID 2
 #endif
 
+#ifndef SEGMENTED_DETECTION_ID
+#define SEGMENTED_DETECTION_ID 1
+#endif
+
 /*
  * JOYSTICK message (used for payload or control, but not as a RC)
  */
