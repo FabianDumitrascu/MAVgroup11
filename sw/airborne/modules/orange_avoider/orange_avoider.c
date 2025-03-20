@@ -28,7 +28,7 @@
 #define NAV_C // needed to get the nav functions like Inside...
 #include "generated/flight_plan.h"
 
-#define ORANGE_AVOIDER_VERBOSE FALSE
+#define ORANGE_AVOIDER_VERBOSE TRUE
 
 #define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
 #if ORANGE_AVOIDER_VERBOSE
@@ -45,61 +45,47 @@ static uint8_t chooseRandomIncrementAvoidance(void);
 
 enum navigation_state_t {
   SAFE,
-  OBSTACLE_FOUND,
+  SEARCH_FOR_BEST_HEADING,
   SEARCH_FOR_SAFE_HEADING,
   OUT_OF_BOUNDS
   };
 
 // define settings
-float oa_color_count_frac = 0.18f;
-
-// define and initialise global variables
+float oa_color_count_frac = 0.4f; // this is the only one used right now for thresholds
+float obstacle_far_count_frac = 0.3f;
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t color_count_middle = 0;                // orange color count from color filter for obstacle detection
-int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
+
 float heading_increment = 5.f;          // heading angle increment [deg]
-float maxDistance = 2.25;               // max waypoint displacement [m]
+float heading_change_best = 5.f;
+float maxDistance = 2.25f;               // max waypoint displacement [m]
+uint8_t minimum_center_confidence_for_move = 2; //When trying to move left or right if center confidence is lower than this number, drone wont move.
 
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
-/*
- * This next section defines an ABI messaging event (http://wiki.paparazziuav.org/wiki/ABI), necessary
- * any time data calculated in another module needs to be accessed. Including the file where this external
- * data is defined is not enough, since modules are executed parallel to each other, at different frequencies,
- * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
- * defined in this file does not need to be explicitly called, only bound in the init function
- */
-#ifndef GREEN_DETECTION_GROUP_11_ID
-#define GREEN_DETECTION_GROUP_11_ID ABI_BROADCAST
-#endif
-static abi_event color_detection_ev;
-static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
-                               int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
-                               int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
-                               int32_t quality, int16_t __attribute__((unused)) extra)
-
-
-{
-  color_count_middle = quality;
-}
-
-int16_t green_pixels_sector_1_cb = 0;
+int16_t green_pixels_sector_1_cb = 0; 
 int16_t green_pixels_sector_2_cb = 0;
 int16_t green_pixels_sector_3_cb = 0;
 
+int32_t reward_left = 0;
+int32_t reward_center = 0;
+int32_t reward_right = 0;
 
-#ifndef TEST_GROUP_11_DETECTION_ID
-#define TEST_GROUP_11_DETECTION_ID ABI_BROADCAST
+int8_t left_confidence = 0;
+int8_t center_confidence = 0;
+int8_t right_confidence = 0;
+
+#ifndef GREEN_DETECTION_GROUP_11_ID
+#define GREEN_DETECTION_GROUP_11_ID ABI_BROADCAST
 #endif
-static abi_event testing_ev; 
-static void testing_cb(uint8_t __attribute__((unused)) sender_id, 
+static abi_event green_detection_ev; 
+static void green_detection_cb(uint8_t __attribute__((unused)) sender_id, 
                             int16_t green_pixels_sector_1, 
                             int16_t green_pixels_sector_2,
                             int16_t green_pixels_sector_3
                             ) {
-green_pixels_sector_1_cb = green_pixels_sector_1;
-green_pixels_sector_2_cb = green_pixels_sector_2;
-green_pixels_sector_3_cb = green_pixels_sector_3;
+  green_pixels_sector_1_cb = green_pixels_sector_1;
+  green_pixels_sector_2_cb = green_pixels_sector_2;
+  green_pixels_sector_3_cb = green_pixels_sector_3;
 }
 
 
@@ -115,7 +101,6 @@ static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint16_t ed
   edge_count_sector_1_cb = edge_count_sector_1;
   edge_count_sector_2_cb = edge_count_sector_2;
   edge_count_sector_3_cb = edge_count_sector_3;
-
 }
 
 
@@ -128,93 +113,178 @@ void orange_avoider_init(void)
   srand(time(NULL));
   chooseRandomIncrementAvoidance();
 
-  // bind our colorfilter callbacks to receive the color filter outputs
-  AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-  AbiBindMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, &testing_ev, testing_cb);
+  // bind our green detection and edge detection callbacks
+  AbiBindMsgGREEN_DETECTION_GROUP_11(GREEN_DETECTION_GROUP_11_ID, &green_detection_ev, green_detection_cb);
   AbiBindMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, &edge_detection_ev, edge_count_cb);
 }
 
-/*
- * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
- */
 void orange_avoider_periodic(void)
 {
-  // only evaluate our state machine if we are flying
-  if(!autopilot_in_flight()){
-    return;
-  }
-  VERBOSE_PRINT("Edge count (sector1, sector2, sector3) = (%d, %d, %d)\n", edge_count_sector_1_cb, edge_count_sector_2_cb, edge_count_sector_3_cb);
+    // Static counters to build up forward movement and to avoid endless search turning.
+    static int safe_counter = 0;
+    static int search_counter = 0;
 
-  // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+    // Only execute if we are flying.
+    if (!autopilot_in_flight()) {
+        return;
+    }
 
-  // update our safe confidence using color threshold
-  if(color_count_middle < color_count_threshold){
-    obstacle_free_confidence++;
-  } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
-  }
+    // Compute the pixel area per sector of the front camera.
+    int32_t area = (front_camera.output_size.w / 3) * (front_camera.output_size.h / 2);
+    // int32_t near_obstacle_green_threshold = (int32_t)(oa_color_count_frac * area);
+    // int32_t far_obstacle_green_threshold  = (int32_t)(obstacle_far_count_frac * area);
+    int32_t minimum_reward = (int32_t)(oa_color_count_frac * area);
 
-  // bound obstacle_free_confidence
-  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+    // Get the green pixel counts for each sector.
+    int32_t reward_green_left   = green_pixels_sector_1_cb;
+    int32_t reward_green_center = green_pixels_sector_2_cb;
+    int32_t reward_green_right  = green_pixels_sector_3_cb;
 
-  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
+    // Adjust these reward functions to change sensitivity to edges or green pixels etc....
+    reward_left = reward_green_left;
+    reward_center = reward_green_center;
+    reward_right = reward_green_right;
 
-  switch (navigation_state){
-    case SAFE:
-      // Move waypoint forward
-      moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
-      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        navigation_state = OUT_OF_BOUNDS;
-      } else if (obstacle_free_confidence == 0){
-        navigation_state = OBSTACLE_FOUND;
-      } else {
-        moveWaypointForward(WP_GOAL, moveDistance);
-        moveWaypointForward(WP_RETREAT, -1.0f * moveDistance);
-      }
+    // Update obstacle detection confidences.
+    if (reward_center > minimum_reward) {
+        center_confidence++;
+    } else {
+        center_confidence -= 2;
+    }
 
-      break;
-    case OBSTACLE_FOUND:
-      // stop
-      waypoint_move_here_2d(WP_GOAL);
-      waypoint_move_here_2d(WP_RETREAT);
-      waypoint_move_here_2d(WP_TRAJECTORY);
+    if (reward_right > minimum_reward) {
+      right_confidence++;
+    } else {
+        right_confidence -= 2;
+    }
 
-      // randomly select new search direction
-      chooseRandomIncrementAvoidance();
+    if (reward_left > minimum_reward) {
+      left_confidence++;
+    } else {
+        left_confidence -= 2;
+    }
+    // bound confidences
+    Bound(center_confidence, 0, max_trajectory_confidence);
+    Bound(left_confidence, 0, max_trajectory_confidence);
+    Bound(right_confidence, 0, max_trajectory_confidence);
 
-      navigation_state = SEARCH_FOR_SAFE_HEADING;
+    float moveDistance = fminf(maxDistance, 0.2f * center_confidence);
 
-      break;
-    case SEARCH_FOR_SAFE_HEADING:
-      increase_nav_heading(heading_increment);
-
-      // make sure we have a couple of good readings before declaring the way safe
-      if (obstacle_free_confidence >= 2){
-        navigation_state = SAFE;
-      }
-      break;
-    case OUT_OF_BOUNDS:
-      increase_nav_heading(heading_increment);
-      moveWaypointForward(WP_TRAJECTORY, 1.5f);
-      moveWaypointForward(WP_RETREAT, -1.0f);
-
-      if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        // add offset to head back into arena
+    switch (navigation_state) {
+      case SAFE:
+        VERBOSE_PRINT("State: SAFE. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
+                      left_confidence, center_confidence, right_confidence,
+                      reward_left, reward_center, reward_right);
+        
+        // Move waypoint forward
+        moveWaypointForward(WP_TRAJECTORY, moveDistance);
+        
+        // Check if inside obstacle zone
+        if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY), WaypointY(WP_TRAJECTORY))) {
+          navigation_state = OUT_OF_BOUNDS;
+        }
+        // If center is not safe, verify whether left or right is safe
+        else if (reward_center < minimum_reward) {
+          if ((reward_left > minimum_reward) || (reward_right > minimum_reward)) {
+            navigation_state = SEARCH_FOR_BEST_HEADING;
+          } else {
+            navigation_state = SEARCH_FOR_SAFE_HEADING;
+          }
+        } 
+        else { 
+          // Regular move, varies by confidence score (moveDistance is defined that way)
+          moveWaypointForward(WP_GOAL, moveDistance);
+          moveWaypointForward(WP_RETREAT, -1.0f * moveDistance);
+        }
+        break;
+    
+      case SEARCH_FOR_BEST_HEADING:
+        VERBOSE_PRINT("State: SEARCH_FOR_BEST_HEADING. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
+                      left_confidence, center_confidence, right_confidence,
+                      reward_left, reward_center, reward_right);
+        
+        // Decide if left or right has more green.
+        if (reward_left > minimum_reward) {
+          increase_nav_heading(-heading_change_best);
+          if (center_confidence >= minimum_center_confidence_for_move) {
+            navigation_state = SAFE;
+            break;
+          } 
+        }
+        else if (reward_right > minimum_reward) {
+          increase_nav_heading(heading_change_best);
+          if (center_confidence >= minimum_center_confidence_for_move) {
+            navigation_state = SAFE;
+            break;
+          }
+        } 
+        else {
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+          break;
+        }
+        break;
+    
+      case SEARCH_FOR_SAFE_HEADING:
+        VERBOSE_PRINT("State: SEARCH_FOR_SAFE_HEADING. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
+                      left_confidence, center_confidence, right_confidence,
+                      reward_left, reward_center, reward_right);
+        
+        if (left_confidence == 0 && right_confidence == 0) {
+          // Turn far left if no confidence on either side.
+          increase_nav_heading(-3*heading_change_best);
+        }
+        else if (left_confidence >= right_confidence) {
+          // Turn left
+          increase_nav_heading(-heading_change_best);
+          VERBOSE_PRINT("Turning left, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
+          if (center_confidence >= minimum_center_confidence_for_move) {
+            navigation_state = SAFE;
+            break;
+          }
+        }
+        else {
+          // Turn right
+          increase_nav_heading(heading_change_best);
+          VERBOSE_PRINT("Turning right, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
+          if (center_confidence >= minimum_center_confidence_for_move) {
+            navigation_state = SAFE;
+            break;
+          }
+        }
+        // Make sure we have a couple of good readings before declaring the way safe.
+        if (center_confidence >= minimum_center_confidence_for_move) {
+          navigation_state = SAFE;
+        }
+        break;
+    
+      case OUT_OF_BOUNDS:
+        VERBOSE_PRINT("State: OUT_OF_BOUNDS. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
+                      left_confidence, center_confidence, right_confidence,
+                      reward_left, reward_center, reward_right);
+        
         increase_nav_heading(heading_increment);
-
-        // reset safe counter
-        obstacle_free_confidence = 0;
-
-        // ensure direction is safe before continuing
-        navigation_state = SEARCH_FOR_SAFE_HEADING;
-      }
-      break;
-    default:
-      break;
-  }
-  return;
-}
+        moveWaypointForward(WP_TRAJECTORY, 1.5f);
+        moveWaypointForward(WP_RETREAT, -1.0f);
+      
+        if (InsideObstacleZone(WaypointX(WP_TRAJECTORY), WaypointY(WP_TRAJECTORY))) {
+          // Add offset to head back into arena
+          increase_nav_heading(heading_increment);
+          // Reset safe counter (here, we reset center confidence)
+          center_confidence = 0;
+          // Ensure direction is safe before continuing
+          navigation_state = SEARCH_FOR_SAFE_HEADING;
+        }
+        break;
+    
+      default:
+        VERBOSE_PRINT("State: DEFAULT. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
+                      left_confidence, center_confidence, right_confidence,
+                      reward_left, reward_center, reward_right);
+        break;
+    }
+    
+    return;
+  }    
 
 /*
  * Increases the NAV heading. Assumes heading is an INT32_ANGLE. It is bound in this function.
