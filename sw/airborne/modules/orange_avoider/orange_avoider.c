@@ -45,22 +45,25 @@ static uint8_t chooseRandomIncrementAvoidance(void);
 
 enum navigation_state_t {
   SAFE,
-  OBSTACLE_FOUND,
+  OBSTACLE_FAR,
+  SEARCH_FOR_BEST_HEADING,
+  OBSTACLE_NEAR,
   SEARCH_FOR_SAFE_HEADING,
   OUT_OF_BOUNDS
   };
 
 // define settings
 float oa_color_count_frac = 0.1f;
+float obstacle_far_count_frac = 0.3f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 int32_t color_count = 0;                // orange color count from color filter for obstacle detection
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
-float heading_increment = 10.f;          // heading angle increment [deg]
+float heading_increment = 30.f;          // heading angle increment [deg]
 float maxDistance = 3;               // max waypoint displacement [m]
 
-const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
+const int16_t max_trajectory_confidence = 10; // number of consecutive negative object detections to be sure we are obstacle free
 
 /*
  * This next section defines an ABI messaging event (http://wiki.paparazziuav.org/wiki/ABI), necessary
@@ -69,12 +72,29 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
  * in different threads. The ABI event is triggered every time new data is sent out, and as such the function
  * defined in this file does not need to be explicitly called, only bound in the init function
  */
+
+int16_t pixel_count_center = 0;
+int16_t pixel_count_left = 0;
+int16_t pixel_count_right = 0;
+
+#ifndef TEST_DETECTION
+#define TEST_DETECTION ABI_BROADCAST
+#endif
+static abi_event segmented_counter_ev;
+static void segmented_counter_cb(uint8_t __attribute__((unused)) sender_id,
+			  int16_t count_left, int16_t count_center, int16_t count_right)
+{
+  pixel_count_left = count_left;
+  pixel_count_center = count_center;
+  pixel_count_right = count_right;
+}
+
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
 #endif
 static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
-                               int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
+                               int16_t pixel_x, int16_t pixel_y,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
                                int32_t quality, int16_t __attribute__((unused)) extra)
 {
@@ -92,6 +112,7 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  AbiBindMsgSEGMENTED_DETECTION(SEGMENTED_DETECTION_ID, &segmented_counter_ev, segmented_counter_cb);
 }
 
 /*
@@ -106,9 +127,10 @@ void orange_avoider_periodic(void)
 
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
+  int32_t far_obstacle_threshold = obstacle_far_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
-
+  //VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  VERBOSE_PRINT("Current Confidence: %d", obstacle_free_confidence);
   // update our safe confidence using color threshold
   if(color_count > color_count_threshold){
     obstacle_free_confidence++;
@@ -127,15 +149,44 @@ void orange_avoider_periodic(void)
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
         navigation_state = OUT_OF_BOUNDS;
+      } else if (color_count < far_obstacle_threshold){
+        navigation_state = OBSTACLE_FAR;
       } else if (obstacle_free_confidence == 0){
-        navigation_state = OBSTACLE_FOUND;
+        navigation_state = OBSTACLE_NEAR;
       } else {
         moveWaypointForward(WP_GOAL, moveDistance);
         moveWaypointForward(WP_RETREAT, -1.0f * moveDistance);
       }
+      break;
+    case OBSTACLE_FAR:
+      // Only print for now
+      VERBOSE_PRINT("There is an obstacle far away");
+      navigation_state = SEARCH_FOR_BEST_HEADING;
 
       break;
-    case OBSTACLE_FOUND:
+    case SEARCH_FOR_BEST_HEADING:
+      // Decide if left or right has more green.
+      if ( (pixel_count_left >= pixel_count_right) &&
+          (pixel_count_left >= far_obstacle_threshold) ){
+        increase_nav_heading(-1*heading_increment);
+
+        if (obstacle_free_confidence >= 2){
+        navigation_state = SAFE;
+        }
+      } else if (pixel_count_right >= far_obstacle_threshold){
+        increase_nav_heading(heading_increment);
+
+        if (obstacle_free_confidence >= 2){
+        navigation_state = SAFE;
+        }
+      } else {
+        moveWaypointForward(WP_GOAL, moveDistance);
+        moveWaypointForward(WP_RETREAT, -1.0f * moveDistance);
+        navigation_state = OBSTACLE_NEAR;
+      }
+
+      break; 
+    case OBSTACLE_NEAR:
       // stop
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_RETREAT);
@@ -190,7 +241,7 @@ uint8_t increase_nav_heading(float incrementDegrees)
   // set heading, declared in firmwares/rotorcraft/navigation.h
   nav.heading = new_heading;
 
-  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+  //VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
   return false;
 }
 
@@ -215,9 +266,9 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
   // Now determine where to place the waypoint you want to go to
   new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
   new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-  VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
-                POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-                stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
+  //VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
+    //            POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
+      //          stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
   return false;
 }
 
@@ -226,8 +277,8 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
  */
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 {
-  VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
-                POS_FLOAT_OF_BFP(new_coor->y));
+  //VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
+    //            POS_FLOAT_OF_BFP(new_coor->y));
   waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
   return false;
 }
