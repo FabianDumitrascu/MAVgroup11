@@ -67,8 +67,8 @@ uint8_t cod_cb_max2 = 0;
 uint8_t cod_cr_min2 = 0;
 uint8_t cod_cr_max2 = 0;
 
-bool cod_draw1 = false;
-bool cod_draw2 = false;
+bool cod_draw1 = true;
+bool cod_draw2 = true;
 
 // define global variables
 struct color_object_t {
@@ -79,8 +79,15 @@ struct color_object_t {
 };
 struct color_object_t global_filters[2];
 
+struct Tuple {
+   int16_t count_left;
+   int16_t count_center;
+   int16_t count_right;
+};
+struct Tuple Global_Counts;
+
 // Function
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+struct Tuple find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max);
@@ -124,16 +131,21 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   int32_t x_c, y_c;
 
   // Filter and find centroid
-  uint32_t count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
-  VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
-  VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
-        hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
+  struct Tuple Local_Counts = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max);
+  uint32_t count = Local_Counts.count_center;
+  VERBOSE_PRINT("Count Left = %d, Count Center = %d, Count Right = %d", Local_Counts.count_left, Local_Counts.count_center, Local_Counts.count_right);
+  //VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
+  //VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
+        //hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
 
   pthread_mutex_lock(&mutex);
   global_filters[filter-1].color_count = count;
   global_filters[filter-1].x_c = x_c;
   global_filters[filter-1].y_c = y_c;
   global_filters[filter-1].updated = true;
+  Global_Counts.count_left = Local_Counts.count_left;
+  Global_Counts.count_center = Local_Counts.count_center;
+  Global_Counts.count_right = Local_Counts.count_center;
   pthread_mutex_unlock(&mutex);
 
   return img;
@@ -206,24 +218,28 @@ void color_object_detector_init(void)
  * @param draw - whether or not to draw on image
  * @return number of pixels of image within the filter bounds.
  */
-uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
+uint16_t y_left = 0;
+struct Tuple find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
                               uint8_t lum_min, uint8_t lum_max,
                               uint8_t cb_min, uint8_t cb_max,
                               uint8_t cr_min, uint8_t cr_max)
 {
-  uint32_t cnt = 0;
-  uint32_t tot_x = 0;
-  uint32_t tot_y = 0;
+  uint16_t cnt_l = 0;
+  uint16_t cnt_c = 0;
+  uint16_t cnt_r = 0;
   uint8_t *buffer = img->buf;
 
-  // Select segment
-  uint16_t y_min = img->h / 3;
-  uint16_t y_max = 2 * img->h / 3;
+  // set bounds for segments
   uint16_t x_min = 0;
-  uint16_t x_max = img->w / 2;
+  uint16_t x_max = img->w/2;  //only look at bottom half of the screen
 
+  // center segment
+  uint16_t y_left = img->h / 3;
+  uint16_t y_right = 2 * img->h / 3;
+
+  // Go through all the segments
   // Go through all the pixels
-  for (uint16_t y = y_min; y < y_max; y++) {
+  for (uint16_t y = 0; y < img->h; y++) {
     for (uint16_t x = x_min; x < x_max; x ++) {
       // Check if the color is inside the specified values
       uint8_t *yp, *up, *vp;
@@ -243,30 +259,46 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
       if ( (*yp >= lum_min) && (*yp <= lum_max) &&
            (*up >= cb_min ) && (*up <= cb_max ) &&
            (*vp >= cr_min ) && (*vp <= cr_max )) {
-        cnt ++;
-        tot_x += x;
-        tot_y += y;
-        if (draw){
-          *yp = 255;  // make pixel brighter in image
+        if (y <= y_left) {
+          cnt_l++;
+          if (draw){
+            *yp = 230;  // make pixel brighter in image
+          }
+        } else if (y >= y_right) {
+           cnt_r++;
+           if (draw){
+             *yp = 230;  // make pixel brighter in image
+           }
+        } else {
+           cnt_c++;
+           if (draw){
+             *yp = 255;
+           }
         }
+          
       }
     }
   }
-  if (cnt > 0) {
-    *p_xc = (int32_t)roundf(tot_x / ((float) cnt) - img->w * 0.5f);
-    *p_yc = (int32_t)roundf(img->h * 0.5f - tot_y / ((float) cnt));
-  } else {
-    *p_xc = 0;
-    *p_yc = 0;
-  }
-  return cnt;
+//  if (cnt > 0) {
+//    *p_xc = (int32_t)roundf(tot_x / ((float) cnt) - img->w * 0.5f);
+//    *p_yc = (int32_t)roundf(img->h * 0.5f - tot_y / ((float) cnt));
+//  } else {
+//    *p_xc = 0;
+//    *p_yc = 0;
+//  }
+  struct Tuple counts = {cnt_l, cnt_c, cnt_r};
+  return counts;
 }
 
 void color_object_detector_periodic(void)
 {
   static struct color_object_t local_filters[2];
+  static int16_t count_left, count_center, count_right ;
   pthread_mutex_lock(&mutex);
   memcpy(local_filters, global_filters, 2*sizeof(struct color_object_t));
+  memcpy(&count_left, &Global_Counts.count_left, sizeof(int16_t));
+  memcpy(&count_center, &Global_Counts.count_center, sizeof(int16_t));
+  memcpy(&count_right, &Global_Counts.count_right, sizeof(int16_t));
   pthread_mutex_unlock(&mutex);
 
   if(local_filters[0].updated){
@@ -279,4 +311,5 @@ void color_object_detector_periodic(void)
         0, 0, local_filters[1].color_count, 1);
     local_filters[1].updated = false;
   }
+  AbiSendMsgSEGMENTED_DETECTION(SEGMENTED_DETECTION_ID, count_left, count_center, count_right);
 }
