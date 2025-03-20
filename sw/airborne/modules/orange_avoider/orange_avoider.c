@@ -61,7 +61,7 @@ float obstacle_far_count_frac = 0.3f;
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 int32_t color_count = 0;                // orange color count from color filter for obstacle detection
-int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
+int16_t center_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 3;               // max waypoint displacement [m]
 
@@ -81,6 +81,10 @@ int16_t pixel_count_right = 0;
 
 int16_t left_confidence = 0;
 int16_t right_confidence = 0;
+
+int32_t cost_left = 0;
+int32_t cost_center = 0;
+int32_t cost_right = 0;
 
 #ifndef TEST_DETECTION
 #define TEST_DETECTION ABI_BROADCAST
@@ -102,7 +106,7 @@ static void segmented_counter_cb(uint8_t __attribute__((unused)) sender_id,
 void reset_confidence_scores(){
   left_confidence = 0;
   right_confidence = 0;
-  obstacle_free_confidence= 0;
+  center_confidence= 0;
   // max_trajectory_confidence = 0;
 }
 
@@ -142,47 +146,46 @@ void orange_avoider_periodic(void)
     return;
   }
 
-  // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
-  int32_t far_obstacle_threshold = obstacle_far_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
+  // compute current cost threshold
+  int32_t near_cost_threshold = oa_color_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
+  int32_t far_cost_threshold = obstacle_far_count_frac * (front_camera.output_size.w/3) * (front_camera.output_size.h/2);
+
+  // Define the cost function based on green pixel count and number of edges here:
+  int32_t cost_left = pixel_count_left;
+  int32_t cost_center = pixel_count_center;
+  int32_t cost_right = pixel_count_right;
 
   //VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
-  VERBOSE_PRINT("Current Confidence left: %d, center: %d, right: %d, state: %d", left_confidence, obstacle_free_confidence, right_confidence, navigation_state);
+  VERBOSE_PRINT("Current Confidence left: %d, center: %d, right: %d, state: %d", left_confidence, center_confidence, right_confidence, navigation_state);
   // update our safe confidence using color threshold
-  if(color_count > color_count_threshold){
-    obstacle_free_confidence++;
+  if(cost_center > far_cost_threshold){
+    center_confidence++;
   } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
+    center_confidence -= 2;  // be more cautious with positive obstacle detections
   }
 
-  // bound obstacle_free_confidence
-  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  // bound center_confidence
+  Bound(center_confidence, 0, max_trajectory_confidence);
 
   
-  if ( (pixel_count_left < color_count_threshold) && (pixel_count_right < color_count_threshold) ){
+  if ( (cost_left < near_cost_threshold) && (cost_right < near_cost_threshold) ){
     left_confidence-=2;
     right_confidence-=2;
     
-  } else if (pixel_count_left >= pixel_count_right){
+  } else if (cost_left >= cost_right){
        left_confidence ++;
        right_confidence-=2;
   } else {
        left_confidence -=2;
        right_confidence++;
   }
-  
-  if(pixel_count_center > color_count_threshold){
-    obstacle_free_confidence++;
-  } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
-  }
 
-  // bound obstacle_free_confidence
-  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+  // bound confidences
+  Bound(center_confidence, 0, max_trajectory_confidence);
   Bound(left_confidence, 0, max_trajectory_confidence);
   Bound(right_confidence, 0, max_trajectory_confidence);
   
-  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
+  float moveDistance = fminf(maxDistance, 0.2f * center_confidence);
 
   switch (navigation_state){
     case SAFE:
@@ -191,9 +194,9 @@ void orange_avoider_periodic(void)
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
         navigation_state = OUT_OF_BOUNDS;
-      } else if (color_count < far_obstacle_threshold){
+      } else if (cost_center < far_cost_threshold){
         navigation_state = OBSTACLE_FAR;
-      } else if (obstacle_free_confidence == 0){
+      } else if (center_confidence == 0){
         navigation_state = OBSTACLE_NEAR;
       } else {
         moveWaypointForward(WP_GOAL, moveDistance);
@@ -208,20 +211,20 @@ void orange_avoider_periodic(void)
       break;
     case SEARCH_FOR_BEST_HEADING:
       // Decide if left or right has more green.
-      if ( (pixel_count_left >= pixel_count_right) &&
-          (pixel_count_left >= far_obstacle_threshold) ){
+      if ( (left_confidence >= right_confidence) &&
+          (cost_left >= far_cost_threshold) ){
         increase_nav_heading(-30.f);
-        if (obstacle_free_confidence >=2){
+        if (center_confidence >=2){
            navigation_state = SAFE;
            break;
         }
-      } else if (pixel_count_right >= far_obstacle_threshold){
+      } else if (cost_right >= far_cost_threshold){
          increase_nav_heading(30.f);
-         if (obstacle_free_confidence >=2){
+         if (center_confidence >=2){
            navigation_state = SAFE;
            break;
          }
-      } else if (obstacle_free_confidence >= 2){
+      } else if (center_confidence >= 2){
          navigation_state = SAFE;
          break;
       } else {
@@ -249,7 +252,7 @@ void orange_avoider_periodic(void)
         // Turn left
         increase_nav_heading(-30.f); // Turn 30 degrees left
         VERBOSE_PRINT("Turning left, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
-        if (obstacle_free_confidence >=2){
+        if (center_confidence >=2){
            navigation_state = SAFE;
            break;
         }
@@ -257,13 +260,13 @@ void orange_avoider_periodic(void)
         // Turn right
         increase_nav_heading(30.f); // Turn 30 degrees right
         VERBOSE_PRINT("Turning right, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
-        if (obstacle_free_confidence >=2){
+        if (center_confidence >=2){
            navigation_state = SAFE;
            break;
         }
       }
       // make sure we have a couple of good readings before declaring the way safe
-      if (obstacle_free_confidence >= 2){
+      if (center_confidence >= 2){
         navigation_state = SAFE;
       }
       break;
@@ -277,7 +280,7 @@ void orange_avoider_periodic(void)
         increase_nav_heading(heading_increment);
 
         // reset safe counter
-        obstacle_free_confidence = 0;
+        center_confidence = 0;
 
         // ensure direction is safe before continuing
         navigation_state = SEARCH_FOR_SAFE_HEADING;
