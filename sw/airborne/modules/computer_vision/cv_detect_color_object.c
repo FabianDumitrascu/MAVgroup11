@@ -395,7 +395,7 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
     }
   }
 
-  VERBOSE_PRINT("Edges in sector 1,2,3: (%d, %d, %d)\n", edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);
+  
   VERBOSE_PRINT("Green in sector 1,2,3: (%d, %d, %d)\n", green_in_sector_1, green_in_sector_2, green_in_sector_3);
 
   free_image(&static_copy);
@@ -421,7 +421,7 @@ void color_object_detector_periodic(void)
     local_filters[1].updated = false;
   }
 
-  AbiSendMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, 3, 4);
+  AbiSendMsgTEST_GROUP_11_DETECTION(TEST_GROUP_11_DETECTION_ID, green_in_sector_1, green_in_sector_2, green_in_sector_3);
   AbiSendMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);
 
 }

@@ -83,17 +83,23 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count = quality;
 }
 
-int16_t first_value_cb = 0;
-int16_t second_value_cb = 0;
+int16_t green_pixels_sector_1_cb = 0;
+int16_t green_pixels_sector_2_cb = 0;
+int16_t green_pixels_sector_3_cb = 0;
 
 
 #ifndef TEST_GROUP_11_DETECTION_ID
 #define TEST_GROUP_11_DETECTION_ID ABI_BROADCAST
 #endif
 static abi_event testing_ev; 
-static void testing_cb(uint8_t __attribute__((unused)) sender_id, int16_t first_value, int16_t second_value) {
- first_value_cb = first_value;
- second_value_cb = second_value;
+static void testing_cb(uint8_t __attribute__((unused)) sender_id, 
+                            int16_t green_pixels_sector_1, 
+                            int16_t green_pixels_sector_2,
+                            int16_t green_pixels_sector_3
+                            ) {
+green_pixels_sector_1_cb = green_pixels_sector_1;
+green_pixels_sector_2_cb = green_pixels_sector_2;
+green_pixels_sector_3_cb = green_pixels_sector_3;
 }
 
 
@@ -109,6 +115,7 @@ static void edge_count_cb(uint8_t __attribute__((unused)) sender_id, uint16_t ed
   edge_count_sector_1_cb = edge_count_sector_1;
   edge_count_sector_2_cb = edge_count_sector_2;
   edge_count_sector_3_cb = edge_count_sector_3;
+
 }
 
 

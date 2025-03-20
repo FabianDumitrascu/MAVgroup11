@@ -259,8 +259,9 @@
     </message>
 
     <message name="TEST_GROUP_11_DETECTION" id="38">
-      <field name="first_value"      type="int16_t">First test value</field>
-      <field name="second_value"      type="int16_t">Second test value</field>
+      <field name="green_pixels_sector_1" type="int16_t">Amount of green pixels in left most sector</field>
+      <field name="green_pixels_sector_2" type="int16_t">Amount of green pixels in middle sector</field>
+      <field name="green_pixels_sector_3" type="int16_t">Amount of green pixels in right most sector</field>
     </message>
 
     <message name="EDGE_DETECTION_GROUP_11" id="39">
