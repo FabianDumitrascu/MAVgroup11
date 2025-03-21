@@ -11,37 +11,33 @@
       <define name="LOGGER_FILE_PATH" value="/data/ftp/internal_000/log"/>
       <define name="MT9V117_TARGET_FPS" value="20"/>
       
-      <!-- Detect orange -->
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="30"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="190"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="70"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="130"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="150"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="190"/>
+      <!-- Detect GREEN -->
+      <!-- Please adjust this data based on experimental data in the CyberZoo -->
+      <define name="GREEN_DETECTOR_LUM_MIN" value="30"/>
+      <define name="GREEN_DETECTOR_LUM_MAX" value="190"/>
+      <define name="GREEN_DETECTOR_CB_MIN" value="70"/>
+      <define name="GREEN_DETECTOR_CB_MAX" value="130"/>
+      <define name="GREEN_DETECTOR_CR_MIN" value="150"/>
+      <define name="GREEN_DETECTOR_CR_MAX" value="190"/>
+      <define name="GREEN_THRESHOLD" value="100"/>
+      <define name="EDGE_THRESHOLD" value="100"/>
+
     </target>
     <target name="nps" board="pc">
       <module name="fdm" type="gazebo"/>
       <define name="VIDEO_CAPTURE_PATH" value="/tmp/paparazzi/images"/>
       <define name="LOGGER_FILE_PATH" value="/tmp/paparazzi/log"/>
       
-      <!-- Detect Green -->
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="100"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="126"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="126"/>
+      <!-- Detect GREEN -->
+      <define name="GREEN_DETECTOR_LUM_MIN" value="0"/>
+      <define name="GREEN_DETECTOR_LUM_MAX" value="100"/>
+      <define name="GREEN_DETECTOR_CB_MIN" value="0"/>
+      <define name="GREEN_DETECTOR_CB_MAX" value="126"/>
+      <define name="GREEN_DETECTOR_CR_MIN" value="0"/>
+      <define name="GREEN_DETECTOR_CR_MAX" value="126"/>
+      <define name="GREEN_THRESHOLD" value="100"/>
+      <define name="EDGE_THRESHOLD" value="100"/>
 
-
-      <!-- Edge detect values -->
-      <define name="EDGE_DETECTOR_LUM_MIN" value="0"/>
-      <define name="EDGE_DETECTOR_LUM_MAX" value="100"/>
-      <define name="EDGE_DETECTOR_CB_MIN" value="0"/>
-      <define name="EDGE_DETECTOR_CB_MAX" value="126"/>
-      <define name="EDGE_DETECTOR_CR_MIN" value="0"/>
-      <define name="EDGE_DETECTOR_CR_MAX" value="126"/>
-      <define name="EDGE_DETECTOR_THRESHOLD" value="255"/>
-     
     </target>
     
     <define name="ARRIVED_AT_WAYPOINT" value="0.3"/><!-- Detect arrival at waypoint when within 0.3m -->
@@ -73,9 +69,9 @@
       <define name="VIDEO_CAPTURE_FPS" value="10"/>
     </module>
     <module name="cv_detect_color_object">
-      <define name="COLOR_OBJECT_DETECTOR_CAMERA1" value="front_camera"/>
-      <define name="COLOR_OBJECT_DETECTOR_FPS1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_DRAW1" value="1"/>
+      <define name="COLOR_OBJECT_DETECTOR_CAMERA" value="front_camera"/>
+      <define name="COLOR_OBJECT_DETECTOR_FPS" value="0"/>
+      <define name="COLOR_OBJECT_DETECTOR_DRAW" value="1"/>
     </module>
     <module name="orange_avoider">
       <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="COLOR_OBJECT_DETECTION1_ID"/>

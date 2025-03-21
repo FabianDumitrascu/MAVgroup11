@@ -47,38 +47,21 @@
 
 static pthread_mutex_t mutex;
 
-#ifndef COLOR_OBJECT_DETECTOR_FPS1
-#define COLOR_OBJECT_DETECTOR_FPS1 0 ///< Default FPS (zero means run at camera fps)
-#endif
-#ifndef COLOR_OBJECT_DETECTOR_FPS2
-#define COLOR_OBJECT_DETECTOR_FPS2 0 ///< Default FPS (zero means run at camera fps)
+#ifndef COLOR_OBJECT_DETECTOR_FPS
+#define COLOR_OBJECT_DETECTOR_FPS 0 ///< Default FPS (zero means run at camera fps)
 #endif
 
-// Filter Settings
-uint8_t cod_lum_min1 = 0;
-uint8_t cod_lum_max1 = 0;
-uint8_t cod_cb_min1 = 0;
-uint8_t cod_cb_max1 = 0;
-uint8_t cod_cr_min1 = 0;
-uint8_t cod_cr_max1 = 0;
+// Filter settings
+uint8_t green_lum_min = 0;
+uint8_t green_lum_max = 0;
+uint8_t green_cb_min = 0;
+uint8_t green_cb_max = 0;
+uint8_t green_cr_min = 0;
+uint8_t green_cr_max = 0;
+uint16_t green_threshold = 0;
+uint16_t edge_threshold = 0;
 
-uint8_t cod_lum_min2 = 0;
-uint8_t cod_lum_max2 = 0;
-uint8_t cod_cb_min2 = 0;
-uint8_t cod_cb_max2 = 0;
-uint8_t cod_cr_min2 = 0;
-uint8_t cod_cr_max2 = 0;
-
-uint8_t edge_lum_min = 0;
-uint8_t edge_lum_max = 0;
-uint8_t edge_cb_min = 0;
-uint8_t edge_cb_max = 0;
-uint8_t edge_cr_min = 0;
-uint8_t edge_cr_max = 0;
-uint8_t edge_threshold = 0;
-
-bool cod_draw1 = false;
-bool cod_draw2 = false;
+bool green_draw = false;
 
 uint16_t edges_in_sector_1 = 0;
 uint16_t edges_in_sector_2 = 0;
@@ -106,7 +89,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     case 1:
       break;
     case 2:
-      break;
+      return img;
     default:
       return img;
   }
@@ -202,9 +185,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 350);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_hor, true, 1);
   apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert, true, 1);
-  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert_mirror, true, 1);
-
-  // VERBOSE_PRINT("Applied Gaussian filter convolution\n");
+  // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert_mirror, true, 1);
 
   return img;
 }
@@ -216,59 +197,24 @@ struct image_t *object_detector1(struct image_t *img, uint8_t camera_id __attrib
   return object_detector(img, 1);
 }
 
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id);
-struct image_t *object_detector2(struct image_t *img, uint8_t camera_id __attribute__((unused)))
-{
-  return object_detector(img, 2);
-}
-
 void color_object_detector_init(void)
 {
   memset(global_filters, 0, 2*sizeof(struct color_object_t));
   pthread_mutex_init(&mutex, NULL);
-#ifdef COLOR_OBJECT_DETECTOR_CAMERA1
-#ifdef COLOR_OBJECT_DETECTOR_LUM_MIN1
-  cod_lum_min1 = COLOR_OBJECT_DETECTOR_LUM_MIN1;
-  cod_lum_max1 = COLOR_OBJECT_DETECTOR_LUM_MAX1;
-  cod_cb_min1 = COLOR_OBJECT_DETECTOR_CB_MIN1;
-  cod_cb_max1 = COLOR_OBJECT_DETECTOR_CB_MAX1;
-  cod_cr_min1 = COLOR_OBJECT_DETECTOR_CR_MIN1;
-  cod_cr_max1 = COLOR_OBJECT_DETECTOR_CR_MAX1;
-#endif
-#ifdef COLOR_OBJECT_DETECTOR_DRAW1
-  cod_draw1 = COLOR_OBJECT_DETECTOR_DRAW1;
-#endif
 
-  cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA1, object_detector1, COLOR_OBJECT_DETECTOR_FPS1, 0);
-#endif
-
-#ifdef COLOR_OBJECT_DETECTOR_CAMERA2
-#ifdef COLOR_OBJECT_DETECTOR_LUM_MIN2
-  cod_lum_min2 = COLOR_OBJECT_DETECTOR_LUM_MIN2;
-  cod_lum_max2 = COLOR_OBJECT_DETECTOR_LUM_MAX2;
-  cod_cb_min2 = COLOR_OBJECT_DETECTOR_CB_MIN2;
-  cod_cb_max2 = COLOR_OBJECT_DETECTOR_CB_MAX2;
-  cod_cr_min2 = COLOR_OBJECT_DETECTOR_CR_MIN2;
-  cod_cr_max2 = COLOR_OBJECT_DETECTOR_CR_MAX2;
-#endif
-#ifdef COLOR_OBJECT_DETECTOR_DRAW2
-  cod_draw2 = COLOR_OBJECT_DETECTOR_DRAW2;
-#endif
-
-  cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA2, object_detector2, COLOR_OBJECT_DETECTOR_FPS2, 1);
-#endif
+  cv_add_to_device(&COLOR_OBJECT_DETECTOR_CAMERA, object_detector1, COLOR_OBJECT_DETECTOR_FPS, 0);
 
 
-// initialize edge detection variables
-#ifdef EDGE_DETECTOR_LUM_MIN
-  edge_lum_min = EDGE_DETECTOR_LUM_MIN;
-  edge_lum_max = EDGE_DETECTOR_LUM_MAX;
-  edge_cb_min = EDGE_DETECTOR_CB_MIN;
-  edge_cb_max = EDGE_DETECTOR_CB_MAX;
-  edge_cr_min = EDGE_DETECTOR_CR_MIN;
-  edge_cr_max = EDGE_DETECTOR_CR_MAX;
-  edge_threshold = EDGE_DETECTOR_THRESHOLD;
-#endif
+
+  green_lum_min = GREEN_DETECTOR_LUM_MIN;
+  green_lum_max = GREEN_DETECTOR_LUM_MAX;
+  green_cb_min = GREEN_DETECTOR_CB_MIN;
+  green_cb_max = GREEN_DETECTOR_CB_MAX;
+  green_cr_min = GREEN_DETECTOR_CR_MIN;
+  green_cr_max = GREEN_DETECTOR_CR_MAX;
+  green_threshold = GREEN_THRESHOLD;
+  edge_threshold = EDGE_THRESHOLD;
+
 
 }
 
@@ -345,9 +291,9 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
 
       if (edge_detection) {
         // For edge detection, if the convolution result exceeds the threshold, mark the pixel in pink.
-        bool isgreen = (*yp > cod_lum_min1 && *yp < cod_lum_max1 &&
-                        *up > cod_cb_min1 && *up < cod_cb_max1 &&
-                        *vp > cod_cr_min1 && *vp < cod_cr_max1);
+        bool isgreen = (*yp > green_lum_min && *yp < green_lum_max &&
+                        *up > green_cb_min && *up < green_cb_max &&
+                        *vp > green_cr_min && *vp < green_cr_max);
         if (isgreen) {
           if (y < img->h / 3){
             green_in_sector_1++;
@@ -409,17 +355,6 @@ void color_object_detector_periodic(void)
   pthread_mutex_lock(&mutex);
   memcpy(local_filters, global_filters, 2*sizeof(struct color_object_t));
   pthread_mutex_unlock(&mutex);
-
-  if(local_filters[0].updated){
-    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].x_c, local_filters[0].y_c,
-        0, 0, local_filters[0].color_count, 0);
-    local_filters[0].updated = false;
-  }
-  if(local_filters[1].updated){
-    AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION2_ID, local_filters[1].x_c, local_filters[1].y_c,
-        0, 0, local_filters[1].color_count, 1);
-    local_filters[1].updated = false;
-  }
 
   AbiSendMsgGREEN_DETECTION_GROUP_11(GREEN_DETECTION_GROUP_11_ID, green_in_sector_1, green_in_sector_2, green_in_sector_3);
   AbiSendMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);

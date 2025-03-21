@@ -32,30 +32,14 @@
 #include <stdbool.h>
 
 // Module settings
-extern uint8_t cod_lum_min1;
-extern uint8_t cod_lum_max1;
-extern uint8_t cod_cb_min1;
-extern uint8_t cod_cb_max1;
-extern uint8_t cod_cr_min1;
-extern uint8_t cod_cr_max1;
-
-extern uint8_t cod_lum_min2;
-extern uint8_t cod_lum_max2;
-extern uint8_t cod_cb_min2;
-extern uint8_t cod_cb_max2;
-extern uint8_t cod_cr_min2;
-extern uint8_t cod_cr_max2;
-
-extern bool cod_draw1;
-extern bool cod_draw2;
-
-extern uint8_t edge_lum_min;
-extern uint8_t edge_lum_max;
-extern uint8_t edge_cb_min;
-extern uint8_t edge_cb_max;
-extern uint8_t edge_cr_min;
-extern uint8_t edge_cr_max;
-extern uint8_t edge_threshold;
+extern uint8_t green_lum_min;
+extern uint8_t green_lum_max;
+extern uint8_t green_cb_min;
+extern uint8_t green_cb_max;
+extern uint8_t green_cr_min;
+extern uint8_t green_cr_max;
+extern uint16_t green_threshold;
+extern uint16_t edge_threshold;
 
 
 // Module functions
