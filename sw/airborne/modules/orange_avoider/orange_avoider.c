@@ -60,7 +60,7 @@ float heading_change_best = 5.f;
 float maxDistance = 2.25f;               // max waypoint displacement [m]
 uint8_t minimum_center_confidence_for_move = 2; //When trying to move left or right if center confidence is lower than this number, drone wont move.
 
-const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
+const int16_t max_trajectory_confidence = 10; // number of consecutive negative object detections to be sure we are obstacle free
 
 int16_t green_pixels_sector_1_cb = 0; 
 int16_t green_pixels_sector_2_cb = 0;
@@ -136,14 +136,22 @@ void orange_avoider_periodic(void)
     int32_t minimum_reward = (int32_t)(oa_color_count_frac * area);
 
     // Get the green pixel counts for each sector.
-    int32_t reward_green_left   = green_pixels_sector_1_cb;
+    int32_t reward_green_left   = 2*green_pixels_sector_1_cb;
     int32_t reward_green_center = green_pixels_sector_2_cb;
-    int32_t reward_green_right  = green_pixels_sector_3_cb;
+    int32_t reward_green_right  = 2*green_pixels_sector_3_cb;
 
+
+    // Get edge counts for each sector
+    int32_t reward_edge_left = edge_count_sector_1_cb;
+    int32_t reward_edge_center = edge_count_sector_2_cb;
+    int32_t reward_edge_right = edge_count_sector_3_cb;   
+    
+    int edge_weight = 25; 
+    
     // Adjust these reward functions to change sensitivity to edges or green pixels etc....
-    reward_left = reward_green_left;
-    reward_center = reward_green_center;
-    reward_right = reward_green_right;
+    reward_left = reward_green_left - reward_edge_left * edge_weight;
+    reward_center = reward_green_center - reward_edge_center * edge_weight;
+    reward_right = reward_green_right - reward_edge_right * edge_weight;
 
     // Update obstacle detection confidences.
     if (reward_center > minimum_reward) {
@@ -229,6 +237,11 @@ void orange_avoider_periodic(void)
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
         
+        waypoint_move_here_2d(WP_GOAL);
+        waypoint_move_here_2d(WP_RETREAT);
+        waypoint_move_here_2d(WP_TRAJECTORY);
+      
+
         if (left_confidence == 0 && right_confidence == 0) {
           // Turn far left if no confidence on either side.
           increase_nav_heading(-3*heading_change_best);
