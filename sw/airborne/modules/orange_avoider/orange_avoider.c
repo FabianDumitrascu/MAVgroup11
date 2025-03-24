@@ -51,11 +51,11 @@ enum navigation_state_t {
   };
 
 // define settings
-float oa_color_count_frac = 0.4f; // this is the only one used right now for thresholds
+float oa_color_count_frac = 0.1f; // this is the only one used right now for thresholds
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 
 float heading_increment = 5.f;          // heading angle increment [deg]
-float heading_change_best = 5.f;
+float heading_change_best = 1;
 float maxDistance = 2.25f;               // max waypoint displacement [m]
 uint8_t minimum_center_confidence_for_move = 2; //When trying to move left or right if center confidence is lower than this number, drone wont move.
 
@@ -133,16 +133,16 @@ void orange_avoider_periodic(void)
     int32_t minimum_reward = (int32_t)(oa_color_count_frac * area);
 
     // Get the green pixel counts for each sector.
-    int32_t reward_green_left   = 2 * green_pixels_sector_1_cb;
+    int32_t reward_green_left   = green_pixels_sector_1_cb;
     int32_t reward_green_center = green_pixels_sector_2_cb;
-    int32_t reward_green_right  = 2 * green_pixels_sector_3_cb;
+    int32_t reward_green_right  = green_pixels_sector_3_cb;
 
     // Get edge counts for each sector
     int32_t reward_edge_left = edge_count_sector_1_cb;
     int32_t reward_edge_center = edge_count_sector_2_cb;
     int32_t reward_edge_right = edge_count_sector_3_cb;   
     
-    int edge_weight = 25; 
+    int edge_weight = 15; 
     
     // Adjust these reward functions to change sensitivity to edges or green pixels etc....
     reward_left = reward_green_left - reward_edge_left * edge_weight;
@@ -179,7 +179,9 @@ void orange_avoider_periodic(void)
         VERBOSE_PRINT("State: SAFE. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
-        
+
+        //increase_nav_heading((right_confidence-left_confidence)/center_confidence); //Steer slightly is there is a large confidence gradient
+
         // Move waypoint forward
         moveWaypointForward(WP_TRAJECTORY, moveDistance);
         
@@ -244,7 +246,7 @@ void orange_avoider_periodic(void)
 
         if (left_confidence == 0 && right_confidence == 0) {
           // Turn far left if no confidence on either side.
-          increase_nav_heading(-3*heading_change_best);
+          increase_nav_heading(-3*heading_increment);
         }
         else if (left_confidence >= right_confidence) {
           // Turn left

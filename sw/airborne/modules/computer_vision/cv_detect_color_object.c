@@ -356,19 +356,19 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
             *vp = 255;  // V channel
             if (result > edge_threshold) {
               edges_in_sector_1++;
-              *yp = 76;  // Y channel
+              *yp = 255;  // Y channel
               *up = 100;  // U channel
               *vp = 90;  // V channel
             }
           }
           else if (y < img->h * 2 / 3){
             green_in_sector_2++;
-            *yp = 200;  // Y channel
-            *up = 43;  // U channel
-            *vp = 21;  // V channel
+            *yp = 150;  // Y channel
+            *up = 150;  // U channel
+            *vp = 30;  // V channel
             if (result > edge_threshold) {
               edges_in_sector_2++;
-              *yp = 149;  // Y channel
+              *yp = 255;  // Y channel
               *up = 100;  // U channel
               *vp = 60;  // V channel
             }
@@ -380,7 +380,7 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
             *vp = 107;  // V channel
             if (result > edge_threshold) {
               edges_in_sector_3++;
-              *yp = 29;  // Y channel
+              *yp = 255;  // Y channel
               *up = 100;  // U channel
               *vp = 150;  // V channel
             }
