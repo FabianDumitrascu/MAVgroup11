@@ -47,6 +47,7 @@
          <dl_setting var="green_threshold"   min="0" step="1" max="400" shortname="green_threshold"/>
          <dl_setting var="edge_threshold" min="0" step="1" max="400" shortname="edge_threshold"/>
          <dl_setting var="screen_fraction_scan" min="0" step="1" max="20" shortname="fraction_of_screen"/>
+         <dl_setting var="downsample_factor" min="0" step="1" max="20" shortname="downsample_factor"/>
       </dl_settings>
     </dl_settings>
   </settings>

@@ -38,6 +38,7 @@
       <define name="GREEN_THRESHOLD" value="100"/>
       <define name="EDGE_THRESHOLD" value="100"/>
       <define name="SCREEN_FRACTION_SCAN" value="10"/>
+      <define name="DOWNSAMPLE_FACTOR" value="1"/>
 
     </target>
     
@@ -80,7 +81,7 @@
     <module name="video_rtp_stream">
       <define name="VIEWVIDEO_CAMERA" value="front_camera"/>
       <define name="VIEWVIDEO_CAMERA2" value="bottom_camera"/>
-      <define name="VIEWVIDEO_DOWNSIZE_FACTOR" value="1"/>
+      <define name="VIEWVIDEO_DOWNSIZE_FACTOR" value="2"/>
       <define name="VIEWVIDEO_QUALITY_FACTOR" value="40"/>
     </module>
   </firmware>

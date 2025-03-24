@@ -61,6 +61,7 @@ uint8_t green_cr_max = 0;
 uint16_t green_threshold = 0;
 uint16_t edge_threshold = 0;
 uint8_t screen_fraction_scan = 0;
+uint8_t downsample_factor = 1;
 
 bool green_draw = false;
 
@@ -218,6 +219,7 @@ void color_object_detector_init(void)
   green_threshold = GREEN_THRESHOLD;
   edge_threshold = EDGE_THRESHOLD;
   screen_fraction_scan = SCREEN_FRACTION_SCAN;
+  downsample_factor = DOWNSAMPLE_FACTOR;
 
 
 }
@@ -262,8 +264,8 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
   uint8_t boundary = kernel->boundary;
 
 
-  for (uint16_t y = boundary; y < img->h  - boundary; y++) {
-    for (uint16_t x = boundary; x < img->w - boundary - screen_fraction_scan * img->w / 20; x++) {
+  for (uint16_t y = boundary; y < img->h  - boundary; y += downsample_factor) {
+    for (uint16_t x = boundary; x < img->w - boundary - screen_fraction_scan * img->w / 20; x += downsample_factor) {
       uint8_t *yp, *up, *vp;
       int16_t result = 0;
       uint8_t kernel_index = 0;

@@ -41,6 +41,7 @@ extern uint8_t green_cr_max;
 extern uint16_t green_threshold;
 extern uint16_t edge_threshold;
 extern uint8_t screen_fraction_scan;
+extern uint8_t downsample_factor;
 
 
 // Module functions
