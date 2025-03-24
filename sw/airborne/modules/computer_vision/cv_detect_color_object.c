@@ -361,7 +361,7 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
               *vp = 90;  // V channel
             }
           }
-          if (y > img->h / 3 && y < img->h * 2 / 3){
+          else if (y < img->h * 2 / 3){
             green_in_sector_2++;
             *yp = 200;  // Y channel
             *up = 43;  // U channel
@@ -373,7 +373,7 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
               *vp = 60;  // V channel
             }
           }
-          if (y > img->h * 2/ 3){
+          else {
             green_in_sector_3++;
             *yp = 200;  // Y channel
             *up = 255;  // U channel

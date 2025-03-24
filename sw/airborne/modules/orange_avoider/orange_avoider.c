@@ -52,7 +52,6 @@ enum navigation_state_t {
 
 // define settings
 float oa_color_count_frac = 0.4f; // this is the only one used right now for thresholds
-float obstacle_far_count_frac = 0.3f;
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 
 float heading_increment = 5.f;          // heading angle increment [deg]
@@ -131,15 +130,12 @@ void orange_avoider_periodic(void)
 
     // Compute the pixel area per sector of the front camera.
     int32_t area = (front_camera.output_size.w / 3) * (front_camera.output_size.h / 2);
-    // int32_t near_obstacle_green_threshold = (int32_t)(oa_color_count_frac * area);
-    // int32_t far_obstacle_green_threshold  = (int32_t)(obstacle_far_count_frac * area);
     int32_t minimum_reward = (int32_t)(oa_color_count_frac * area);
 
     // Get the green pixel counts for each sector.
-    int32_t reward_green_left   = 2*green_pixels_sector_1_cb;
+    int32_t reward_green_left   = 2 * green_pixels_sector_1_cb;
     int32_t reward_green_center = green_pixels_sector_2_cb;
-    int32_t reward_green_right  = 2*green_pixels_sector_3_cb;
-
+    int32_t reward_green_right  = 2 * green_pixels_sector_3_cb;
 
     // Get edge counts for each sector
     int32_t reward_edge_left = edge_count_sector_1_cb;
@@ -213,14 +209,14 @@ void orange_avoider_periodic(void)
         
         // Decide if left or right has more green.
         if (reward_left > minimum_reward) {
-          increase_nav_heading(-heading_change_best);
+          increase_nav_heading(-(left_confidence - center_confidence) * heading_change_best);
           if (center_confidence >= minimum_center_confidence_for_move) {
             navigation_state = SAFE;
             break;
           } 
         }
         else if (reward_right > minimum_reward) {
-          increase_nav_heading(heading_change_best);
+          increase_nav_heading((right_confidence - center_confidence) * heading_change_best);
           if (center_confidence >= minimum_center_confidence_for_move) {
             navigation_state = SAFE;
             break;
@@ -236,6 +232,10 @@ void orange_avoider_periodic(void)
         VERBOSE_PRINT("State: SEARCH_FOR_SAFE_HEADING. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
+        // Stop
+        waypoint_move_here_2d(WP_GOAL);
+        waypoint_move_here_2d(WP_RETREAT);
+        waypoint_move_here_2d(WP_TRAJECTORY);
         
         waypoint_move_here_2d(WP_GOAL);
         waypoint_move_here_2d(WP_RETREAT);
@@ -248,7 +248,7 @@ void orange_avoider_periodic(void)
         }
         else if (left_confidence >= right_confidence) {
           // Turn left
-          increase_nav_heading(-heading_change_best);
+          increase_nav_heading(-(left_confidence - center_confidence)*heading_change_best); // Turn harder if difference in confidence is large
           VERBOSE_PRINT("Turning left, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
           if (center_confidence >= minimum_center_confidence_for_move) {
             navigation_state = SAFE;
@@ -257,7 +257,7 @@ void orange_avoider_periodic(void)
         }
         else {
           // Turn right
-          increase_nav_heading(heading_change_best);
+          increase_nav_heading((right_confidence - center_confidence)*heading_change_best);  // Turn harder if difference in confidence is large
           VERBOSE_PRINT("Turning right, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
           if (center_confidence >= minimum_center_confidence_for_move) {
             navigation_state = SAFE;
