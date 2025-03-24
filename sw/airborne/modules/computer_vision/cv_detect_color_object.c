@@ -60,6 +60,7 @@ uint8_t green_cr_min = 0;
 uint8_t green_cr_max = 0;
 uint16_t green_threshold = 0;
 uint16_t edge_threshold = 0;
+uint8_t screen_fraction_scan = 0;
 
 bool green_draw = false;
 
@@ -70,6 +71,8 @@ uint16_t edges_in_sector_3 = 0;
 uint16_t green_in_sector_1 = 0;
 uint16_t green_in_sector_2 = 0;
 uint16_t green_in_sector_3 = 0;
+
+// void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight);
 
 // define global variables
 struct color_object_t {
@@ -214,6 +217,7 @@ void color_object_detector_init(void)
   green_cr_max = GREEN_DETECTOR_CR_MAX;
   green_threshold = GREEN_THRESHOLD;
   edge_threshold = EDGE_THRESHOLD;
+  screen_fraction_scan = SCREEN_FRACTION_SCAN;
 
 
 }
@@ -258,22 +262,24 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
   uint8_t boundary = kernel->boundary;
 
 
-  for (uint16_t y = boundary; y < img->h - boundary; y++) {
-    for (uint16_t x = boundary; x < img->w - boundary; x++) {
+  for (uint16_t y = boundary; y < img->h  - boundary; y++) {
+    for (uint16_t x = boundary; x < img->w - boundary - screen_fraction_scan * img->w / 20; x++) {
       uint8_t *yp, *up, *vp;
       int16_t result = 0;
       uint8_t kernel_index = 0;
 
-      // Determine the Y channel pointer (assuming Y is at offset +1 for even x)
-      yp = &buffer[y * 2 * img->w + 2 * x + 1];
-
-      // Set U and V pointers based on even/odd x positioning in YUV422
       if (x % 2 == 0) {
-        up = &buffer[y * 2 * img->w + 2 * x];
-        vp = &buffer[y * 2 * img->w + 2 * x + 2];
+        // Even x
+        up = &buffer[y * 2 * img->w + 2 * x];      // U
+        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
+        vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
+        //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
       } else {
-        up = &buffer[y * 2 * img->w + 2 * x - 2];
-        vp = &buffer[y * 2 * img->w + 2 * x];
+        // Uneven x
+        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
+        //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
+        vp = &buffer[y * 2 * img->w + 2 * x];      // V
+        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
       }
 
       // Convolution: iterate over the kernel window
