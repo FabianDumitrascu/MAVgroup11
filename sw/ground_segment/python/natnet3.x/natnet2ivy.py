@@ -19,6 +19,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+
 '''
 Forward rigid body position from NatNet (Optitrack positioning system)
 to the IVY bus as a REMOTE_GPS_LOCAL message
@@ -37,6 +38,11 @@ in your system
 ''' 
 
 from __future__ import print_function
+
+
+import sys
+sys.path.append('/home/fabian/.local/lib/python3.10/site-packages')
+
 
 ADDITIONAL_HELP='''
 ###### Overview ######

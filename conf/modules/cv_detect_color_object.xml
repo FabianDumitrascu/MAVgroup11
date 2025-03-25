@@ -37,30 +37,18 @@
 
   <settings>
     <dl_settings>
-      <dl_settings name="ColorDetectValues">
-         <dl_setting var="cod_lum_min1" min="0" step="1" max="255" shortname="y_min1"/>
-         <dl_setting var="cod_lum_max1" min="0" step="1" max="255" shortname="y_max1"/>
-         <dl_setting var="cod_cb_min1"   min="0" step="1" max="255" shortname="u_min1"/>
-         <dl_setting var="cod_cb_max1"   min="0" step="1" max="255" shortname="u_max1"/>
-         <dl_setting var="cod_cr_min1"   min="0" step="1" max="255" shortname="v_min1"/>
-         <dl_setting var="cod_cr_max1"   min="0" step="1" max="255" shortname="v_max1"/>
-         <dl_setting var="cod_draw1"  min="0" step="1" max="1" values="False|True" shortname="draw 1" />
-         <dl_setting var="cod_lum_min2" min="0" step="1" max="255" shortname="y_min2"/>
-         <dl_setting var="cod_lum_max2" min="0" step="1" max="255" shortname="y_max2"/>
-         <dl_setting var="cod_cb_min2"   min="0" step="1" max="255" shortname="u_min2"/>
-         <dl_setting var="cod_cb_max2"   min="0" step="1" max="255" shortname="u_max2"/>
-         <dl_setting var="cod_cr_min2"   min="0" step="1" max="255" shortname="v_min2"/>
-         <dl_setting var="cod_cr_max2"   min="0" step="1" max="255" shortname="v_max2"/>
-         <dl_setting var="cod_draw2"  min="0" step="1" max="1" values="False|True" shortname="draw 2" />
-      </dl_settings>
-      <dl_settings name="EdgeDetectValues">
-         <dl_setting var="edge_lum_min" min="0" step="1" max="255" shortname="y_edge_min"/>
-         <dl_setting var="edge_lum_max" min="0" step="1" max="255" shortname="y_edge_max"/>
-         <dl_setting var="edge_cb_min"   min="0" step="1" max="255" shortname="u_edge_min"/>
-         <dl_setting var="edge_cb_max"   min="0" step="1" max="255" shortname="u_edge_max"/>
-         <dl_setting var="edge_cr_min"   min="0" step="1" max="255" shortname="v_edge_min"/>
-         <dl_setting var="edge_cr_max"   min="0" step="1" max="255" shortname="v_edge_max"/>
-         <dl_setting var="edge_threshold"   min="0" step="1" max="255" shortname="threshold_edge"/>
+      <dl_settings name="GreenDetectValues">
+         <dl_setting var="green_lum_min" min="0" step="1" max="255" shortname="y_green_min"/>
+         <dl_setting var="green_lum_max" min="0" step="1" max="255" shortname="y_green_max"/>
+         <dl_setting var="green_cb_min"   min="0" step="1" max="255" shortname="u_green_min"/>
+         <dl_setting var="green_cb_max"   min="0" step="1" max="255" shortname="u_green_max"/>
+         <dl_setting var="green_cr_min"   min="0" step="1" max="255" shortname="v_green_min"/>
+         <dl_setting var="green_cr_max"   min="0" step="1" max="255" shortname="v_green_max"/>
+         <dl_setting var="green_threshold"   min="0" step="1" max="400" shortname="green_threshold"/>
+         <dl_setting var="edge_threshold" min="0" step="1" max="400" shortname="edge_threshold"/>
+         <dl_setting var="screen_fraction_scan" min="0" step="1" max="20" shortname="fraction_of_screen"/>
+         <dl_setting var="downsample_factor" min="0" step="1" max="20" shortname="downsample_factor"/>
+         <dl_setting var="draw" min="0" step="1" max="1" values="False|True" shortname="draw"/>
       </dl_settings>
     </dl_settings>
   </settings>
