@@ -64,6 +64,7 @@ uint8_t screen_fraction_scan = 0;
 uint8_t downsample_factor = 1;
 
 bool draw = false;
+bool print_detections = false;
 
 uint16_t edges_in_sector_1 = 0;
 uint16_t edges_in_sector_2 = 0;
@@ -364,10 +365,16 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
     }
   }
 
-  VERBOSE_PRINT("Green in sector 1,2,3: (%d, %d, %d)\n", 
-                green_in_sector_1, green_in_sector_2, green_in_sector_3);
-  uint16_t totalarea = ((img->h - 2 * boundary) / 3) * (img->w - boundary - screen_fraction_scan * img->w / 20);
-  VERBOSE_PRINT("Total pixels per area: (%d)", totalarea);
+  if (print_detections) {
+    VERBOSE_PRINT("Green in sector 1,2,3: (%d, %d, %d)\n", 
+      green_in_sector_1, green_in_sector_2, green_in_sector_3);
+
+    VERBOSE_PRINT("Edges in sector 1,2,3: (%d, %d, %d)\n", edges_in_sector_1, edges_in_sector_2, edges_in_sector_3);
+  }
+
+
+  // uint16_t totalarea = ((img->h - 2 * boundary) / 3) * (img->w - boundary - screen_fraction_scan * img->w / 20);
+  // VERBOSE_PRINT("Total pixels per area: (%d)", totalarea);
 
   free_image(&static_copy);
   return;

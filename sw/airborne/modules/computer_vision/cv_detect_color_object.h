@@ -43,7 +43,7 @@ extern uint16_t edge_threshold;
 extern uint8_t screen_fraction_scan;
 extern uint8_t downsample_factor;
 extern bool draw;
-
+extern bool print_detections;
 
 // Module functions
 extern void color_object_detector_init(void);

@@ -15,8 +15,9 @@ so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTI
   </doc>
     <settings>
     <dl_settings>
-      <dl_settings name="OrangeAvoider">
+      <dl_settings name="GreenFollower">
          <dl_setting var="oa_color_count_frac" min="0" step="0.01" max="0.5"/>
+         <dl_setting var="print_msgs" min="0" step="1" max="1" values="False|True" shortname="print_msgs"/>
       </dl_settings>
     </dl_settings>
   </settings>

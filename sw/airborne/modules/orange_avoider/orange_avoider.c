@@ -43,6 +43,8 @@ static uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 
+bool print_msgs = false;
+
 enum navigation_state_t {
   SAFE,
   SEARCH_FOR_BEST_HEADING,
@@ -176,10 +178,11 @@ void orange_avoider_periodic(void)
 
     switch (navigation_state) {
       case SAFE:
+      if (print_msgs){
         VERBOSE_PRINT("State: SAFE. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
-
+        }
         //increase_nav_heading((right_confidence-left_confidence)/center_confidence); //Steer slightly is there is a large confidence gradient
 
         // Move waypoint forward
@@ -205,10 +208,11 @@ void orange_avoider_periodic(void)
         break;
     
       case SEARCH_FOR_BEST_HEADING:
+        if (print_msgs){
         VERBOSE_PRINT("State: SEARCH_FOR_BEST_HEADING. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
-        
+        }
         // Decide if left or right has more green.
         if (reward_left > minimum_reward) {
           increase_nav_heading(-(left_confidence - center_confidence) * heading_change_best);
@@ -231,9 +235,11 @@ void orange_avoider_periodic(void)
         break;
     
       case SEARCH_FOR_SAFE_HEADING:
+        if (print_msgs){
         VERBOSE_PRINT("State: SEARCH_FOR_SAFE_HEADING. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
+        }
         // Stop
         waypoint_move_here_2d(WP_GOAL);
         waypoint_move_here_2d(WP_RETREAT);
@@ -251,7 +257,10 @@ void orange_avoider_periodic(void)
         else if (left_confidence >= right_confidence) {
           // Turn left
           increase_nav_heading(-(left_confidence - center_confidence)*heading_change_best); // Turn harder if difference in confidence is large
+          
+          if (print_msgs){
           VERBOSE_PRINT("Turning left, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
+          }
           if (center_confidence >= minimum_center_confidence_for_move) {
             navigation_state = SAFE;
             break;
@@ -260,7 +269,9 @@ void orange_avoider_periodic(void)
         else {
           // Turn right
           increase_nav_heading((right_confidence - center_confidence)*heading_change_best);  // Turn harder if difference in confidence is large
+          if (print_msgs){
           VERBOSE_PRINT("Turning right, confidence: L=%d, R=%d\n", left_confidence, right_confidence);
+          }
           if (center_confidence >= minimum_center_confidence_for_move) {
             navigation_state = SAFE;
             break;
@@ -273,10 +284,11 @@ void orange_avoider_periodic(void)
         break;
     
       case OUT_OF_BOUNDS:
+        if (print_msgs){
         VERBOSE_PRINT("State: OUT_OF_BOUNDS. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
-        
+        }
         increase_nav_heading(heading_increment);
         moveWaypointForward(WP_TRAJECTORY, 1.5f);
         moveWaypointForward(WP_RETREAT, -1.0f);
@@ -292,9 +304,11 @@ void orange_avoider_periodic(void)
         break;
     
       default:
+        if (print_msgs){
         VERBOSE_PRINT("State: DEFAULT. Confidence: L=%d, C=%d, R=%d; Reward: L=%d, C=%d, R=%d\n",
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
+        }
         break;
     }
     
