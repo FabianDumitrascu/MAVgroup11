@@ -63,7 +63,7 @@ uint16_t edge_threshold = 0;
 uint8_t screen_fraction_scan = 0;
 uint8_t downsample_factor = 1;
 
-bool green_draw = false;
+bool draw = false;
 
 uint16_t edges_in_sector_1 = 0;
 uint16_t edges_in_sector_2 = 0;
@@ -188,7 +188,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 273);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 350);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_hor, true, 1);
-  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert, true, 1);
+  apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert, true, 1, draw);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert_mirror, true, 1);
 
   return img;
@@ -253,7 +253,8 @@ struct kernel{
   int8_t values[];
 };
 
-void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight) {
+void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight, bool draw) {
+  // Create a static copy of the original image buffer for detection.
   struct image_t static_copy = deep_copy_image(img);
   if (!static_copy.buf) {
     return;
@@ -263,98 +264,115 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
   uint8_t *static_buffer = (uint8_t *)static_copy.buf;
   uint8_t boundary = kernel->boundary;
 
-
-  for (uint16_t y = boundary; y < img->h  - boundary; y += downsample_factor) {
+  // Loop over each pixel (no downsampling here, adjust as needed)
+  for (uint16_t y = boundary; y < img->h - boundary; y += downsample_factor) {
     for (uint16_t x = boundary; x < img->w - boundary - screen_fraction_scan * img->w / 20; x += downsample_factor) {
       uint8_t *yp, *up, *vp;
       int16_t result = 0;
       uint8_t kernel_index = 0;
 
+      // Compute pointers for Y, U, V from the live buffer.
       if (x % 2 == 0) {
-        // Even x
-        up = &buffer[y * 2 * img->w + 2 * x];      // U
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x + 2];  // V
-        //yp = &buffer[y * 2 * img->w + 2 * x + 3]; // Y2
+        // Even x: U, Y, V sequence.
+        up = &buffer[y * 2 * img->w + 2 * x];        // U
+        yp = &buffer[y * 2 * img->w + 2 * x + 1];      // Y
+        vp = &buffer[y * 2 * img->w + 2 * x + 2];      // V
       } else {
-        // Uneven x
-        up = &buffer[y * 2 * img->w + 2 * x - 2];  // U
-        //yp = &buffer[y * 2 * img->w + 2 * x - 1]; // Y1
-        vp = &buffer[y * 2 * img->w + 2 * x];      // V
-        yp = &buffer[y * 2 * img->w + 2 * x + 1];  // Y2
+        // Odd x.
+        up = &buffer[y * 2 * img->w + 2 * x - 2];      // U
+        vp = &buffer[y * 2 * img->w + 2 * x];          // V
+        yp = &buffer[y * 2 * img->w + 2 * x + 1];      // Y
       }
 
-      // Convolution: iterate over the kernel window
+      // Convolution: iterate over the kernel window using the original static copy.
       for (int8_t row = -((int8_t)kernel->boundary); row <= (int8_t)kernel->boundary; row++) {
         for (int8_t col = -((int8_t)kernel->boundary); col <= (int8_t)kernel->boundary; col++) {
           result += kernel->values[kernel_index] *
                     static_buffer[(y + row) * 2 * img->w + 2 * x + 2 * col + 1];
-          // VERBOSE_PRINT("kernel_value = %d, static_buffer = %d, index = %d\n", 
-          //   (int8_t)kernel->values[kernel_index], 
-          //   static_buffer[(y + row) * 2 * img->w + 2 * x + 2 * col + 1],
-          //   kernel_index);
           kernel_index++;
         }
       }
 
-      if (edge_detection) {
-        // For edge detection, if the convolution result exceeds the threshold, mark the pixel in pink.
-        bool isgreen = (*yp > green_lum_min && *yp < green_lum_max &&
-                        *up > green_cb_min && *up < green_cb_max &&
-                        *vp > green_cr_min && *vp < green_cr_max);
-        if (isgreen) {
-          if (y < img->h / 3){
-            green_in_sector_1++;
-            *yp = 200;  // Y channel
-            *up = 84;  // U channel
-            *vp = 255;  // V channel
+      // Use the original (static) buffer for color detection.
+      uint8_t orig_y, orig_up, orig_vp;
+      if (x % 2 == 0) {
+        orig_up = static_buffer[y * 2 * img->w + 2 * x];
+        orig_y  = static_buffer[y * 2 * img->w + 2 * x + 1];
+        orig_vp = static_buffer[y * 2 * img->w + 2 * x + 2];
+      } else {
+        orig_up = static_buffer[y * 2 * img->w + 2 * x - 2];
+        orig_vp = static_buffer[y * 2 * img->w + 2 * x];
+        orig_y  = static_buffer[y * 2 * img->w + 2 * x + 1];
+      }
+
+      bool isgreen = (orig_y > green_lum_min && orig_y < green_lum_max &&
+                      orig_up > green_cb_min && orig_up < green_cb_max &&
+                      orig_vp > green_cr_min && orig_vp < green_cr_max);
+
+      if (isgreen) {
+        // Partition into sectors based on y (as before).
+        if (y < img->h / 3) {
+          green_in_sector_1++;
+          if (draw) {
+            *yp = 200;  // Draw red (sector 1)
+            *up = 84;
+            *vp = 255;
             if (result > edge_threshold) {
               edges_in_sector_1++;
-              *yp = 76;  // Y channel
-              *up = 100;  // U channel
-              *vp = 90;  // V channel
+              *yp = 76;
+              *up = 100;
+              *vp = 90;
             }
+          } else {
+            if (result > edge_threshold)
+              edges_in_sector_1++;
           }
-          if (y > img->h / 3 && y < img->h * 2 / 3){
-            green_in_sector_2++;
-            *yp = 200;  // Y channel
-            *up = 43;  // U channel
-            *vp = 21;  // V channel
+        } else if (y < img->h * 2 / 3) {
+          green_in_sector_2++;
+          if (draw) {
+            *yp = 200;  // Draw green (sector 2)
+            *up = 43;
+            *vp = 21;
             if (result > edge_threshold) {
               edges_in_sector_2++;
-              *yp = 149;  // Y channel
-              *up = 100;  // U channel
-              *vp = 60;  // V channel
+              *yp = 149;
+              *up = 100;
+              *vp = 60;
             }
+          } else {
+            if (result > edge_threshold)
+              edges_in_sector_2++;
           }
-          if (y > img->h * 2/ 3){
-            green_in_sector_3++;
-            *yp = 200;  // Y channel
-            *up = 255;  // U channel
-            *vp = 107;  // V channel
+        } else {
+          green_in_sector_3++;
+          if (draw) {
+            *yp = 200;  // Draw blue (sector 3)
+            *up = 255;
+            *vp = 107;
             if (result > edge_threshold) {
               edges_in_sector_3++;
-              *yp = 29;  // Y channel
-              *up = 100;  // U channel
-              *vp = 150;  // V channel
+              *yp = 29;
+              *up = 100;
+              *vp = 150;
             }
+          } else {
+            if (result > edge_threshold)
+              edges_in_sector_3++;
           }
         }
-
-      } else {
-        // For a Gaussian blur, replace the luminance with the normalized convolution result.
-        // Here, 'weight' should be the sum of the kernel weights (to normalize the average).
-        *yp = result / weight;
       }
     }
   }
 
-  
-  VERBOSE_PRINT("Green in sector 1,2,3: (%d, %d, %d)\n", green_in_sector_1, green_in_sector_2, green_in_sector_3);
+  VERBOSE_PRINT("Green in sector 1,2,3: (%d, %d, %d)\n", 
+                green_in_sector_1, green_in_sector_2, green_in_sector_3);
+  uint16_t totalarea = ((img->h - 2 * boundary) / 3) * (img->w - boundary - screen_fraction_scan * img->w / 20);
+  VERBOSE_PRINT("Total pixels per area: (%d)", totalarea);
 
   free_image(&static_copy);
   return;
 }
+
 
 
 void color_object_detector_periodic(void)
