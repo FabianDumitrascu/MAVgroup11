@@ -221,6 +221,7 @@ void color_object_detector_init(void)
   edge_threshold = EDGE_THRESHOLD;
   screen_fraction_scan = SCREEN_FRACTION_SCAN;
   downsample_factor = DOWNSAMPLE_FACTOR;
+  print_detections = PRINT_DETECTIONS;
 
 
 }
@@ -265,7 +266,7 @@ void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detectio
   uint8_t *static_buffer = (uint8_t *)static_copy.buf;
   uint8_t boundary = kernel->boundary;
 
-  // Loop over each pixel (no downsampling here, adjust as needed)
+  // Loop over each pixel 
   for (uint16_t y = boundary; y < img->h - boundary; y += downsample_factor) {
     for (uint16_t x = boundary; x < img->w - boundary - screen_fraction_scan * img->w / 20; x += downsample_factor) {
       uint8_t *yp, *up, *vp;

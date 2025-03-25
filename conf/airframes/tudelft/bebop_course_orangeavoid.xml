@@ -22,7 +22,8 @@
       <define name="GREEN_THRESHOLD" value="100"/>
       <define name="EDGE_THRESHOLD" value="100"/>
       <define name="SCREEN_FRACTION_SCAN" value="10"/>
-      <define name="DOWNSAMPLE_FACTOR" value="1"/>
+      <define name="DOWNSAMPLE_FACTOR" value="10"/>
+      <define name="PRINT_DETECTIONS" value="0"/>
 
     </target>
     <target name="nps" board="pc">
