@@ -20,6 +20,7 @@
 extern float oa_color_count_frac;
 extern bool print_msgs;
 extern uint8_t downsampling_value;
+extern uint16_t edge_weight;
 // functions
 extern void orange_avoider_init(void);
 extern void orange_avoider_periodic(void);

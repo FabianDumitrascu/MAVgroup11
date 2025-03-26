@@ -44,6 +44,9 @@ static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 
 bool print_msgs = false;
+uint16_t edge_weight = 15;
+
+
 uint8_t downsampling_value = 1; 
 
 enum navigation_state_t {
@@ -145,7 +148,7 @@ void orange_avoider_periodic(void)
     int32_t reward_edge_center = edge_count_sector_2_cb;
     int32_t reward_edge_right = edge_count_sector_3_cb;   
     
-    int edge_weight = 15; 
+    // int edge_weight = 15; 
     
     // Adjust these reward functions to change sensitivity to edges or green pixels etc....
     reward_left = reward_green_left - reward_edge_left * edge_weight;
@@ -176,7 +179,7 @@ void orange_avoider_periodic(void)
     Bound(right_confidence, 0, max_trajectory_confidence);
 
     float moveDistance = fminf(maxDistance, 0.2f * center_confidence);
-    VERBOSE_PRINT("downsampling_value %d", downsampling_value);
+    VERBOSE_PRINT("edge_weight= %d", edge_weight);
     switch (navigation_state) {
       case SAFE:
       if (print_msgs){
