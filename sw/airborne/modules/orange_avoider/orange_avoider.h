@@ -14,11 +14,12 @@
 #define ORANGE_AVOIDER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 // settings
 extern float oa_color_count_frac;
 extern bool print_msgs;
-
+extern uint8_t downsampling_value;
 // functions
 extern void orange_avoider_init(void);
 extern void orange_avoider_periodic(void);

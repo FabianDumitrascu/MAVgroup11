@@ -44,6 +44,7 @@ static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 
 bool print_msgs = false;
+uint8_t downsampling_value = 1; 
 
 enum navigation_state_t {
   SAFE,
@@ -131,7 +132,7 @@ void orange_avoider_periodic(void)
     }
 
     // Compute the pixel area per sector of the front camera.
-    int32_t area = (front_camera.output_size.w / 3) * (front_camera.output_size.h / 2);
+    int32_t area = (front_camera.output_size.w / 3) * (front_camera.output_size.h / 2) / downsampling_value;
     int32_t minimum_reward = (int32_t)(oa_color_count_frac * area);
 
     // Get the green pixel counts for each sector.
@@ -175,7 +176,7 @@ void orange_avoider_periodic(void)
     Bound(right_confidence, 0, max_trajectory_confidence);
 
     float moveDistance = fminf(maxDistance, 0.2f * center_confidence);
-
+    VERBOSE_PRINT("downsampling_value %d", downsampling_value);
     switch (navigation_state) {
       case SAFE:
       if (print_msgs){

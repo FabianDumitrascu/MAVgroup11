@@ -63,7 +63,7 @@ uint16_t edge_threshold = 0;
 uint8_t screen_fraction_scan = 0;
 uint8_t downsample_factor = 1;
 
-bool draw = false;
+bool draw = true;
 bool print_detections = false;
 
 uint16_t edges_in_sector_1 = 0;
