@@ -182,7 +182,7 @@ void orange_avoider_periodic(void){
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
         }
-        increase_nav_heading((right_confidence-left_confidence)/center_confidence); //Steer slightly is there is a large confidence gradient
+        //increase_nav_heading((right_confidence-left_confidence)/center_confidence); //Steer slightly is there is a large confidence gradient
 
         // Move waypoint forward
         moveWaypointForward(WP_TRAJECTORY, moveDistance);

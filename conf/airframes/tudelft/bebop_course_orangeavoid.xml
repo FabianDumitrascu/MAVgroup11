@@ -13,16 +13,16 @@
       
       <!-- Detect GREEN -->
       <!-- Please adjust this data based on experimental data in the CyberZoo -->
-      <define name="GREEN_DETECTOR_LUM_MIN" value="30"/>
-      <define name="GREEN_DETECTOR_LUM_MAX" value="190"/>
-      <define name="GREEN_DETECTOR_CB_MIN" value="70"/>
+      <define name="GREEN_DETECTOR_LUM_MIN" value="114"/>
+      <define name="GREEN_DETECTOR_LUM_MAX" value="186"/>
+      <define name="GREEN_DETECTOR_CB_MIN" value="0"/>
       <define name="GREEN_DETECTOR_CB_MAX" value="130"/>
-      <define name="GREEN_DETECTOR_CR_MIN" value="150"/>
-      <define name="GREEN_DETECTOR_CR_MAX" value="190"/>
+      <define name="GREEN_DETECTOR_CR_MIN" value="0"/>
+      <define name="GREEN_DETECTOR_CR_MAX" value="141"/>
       <define name="GREEN_THRESHOLD" value="100"/>
       <define name="EDGE_THRESHOLD" value="100"/>
       <define name="SCREEN_FRACTION_SCAN" value="10"/>
-      <define name="DOWNSAMPLE_FACTOR" value="10"/>
+      <define name="DOWNSAMPLE_FACTOR" value="1"/>
       <define name="PRINT_DETECTIONS" value="1"/>
 
     </target>
