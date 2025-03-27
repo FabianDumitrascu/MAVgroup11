@@ -294,7 +294,7 @@ void orange_avoider_periodic(void){
       
         if (InsideObstacleZone(WaypointX(WP_TRAJECTORY), WaypointY(WP_TRAJECTORY))) {
           // Add offset to head back into arena
-          increase_nav_heading(heading_increment);
+          increase_nav_heading(-heading_increment);
           // Reset safe counter (here, we reset center confidence)
           center_confidence = 0;
           // Ensure direction is safe before continuing
