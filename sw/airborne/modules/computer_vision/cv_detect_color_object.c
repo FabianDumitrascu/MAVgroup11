@@ -118,7 +118,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     // weight = 273
   };
 
-  /*struct kernel3x3 kernel_3x3_gauss = {
+  struct kernel3x3 kernel_3x3_gauss = {
     .size = 3,
     .boundary = 1,
     .values = { 1, 2, 1,
@@ -148,7 +148,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
         -3, -2,  0,  2,  3,
         -2, -1,  0,  1,  2
     }
-  };*/
+  };
 
   struct kernel5x5 kernel_5x5_sobel_vert = {
     .size = 5,
@@ -161,7 +161,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
          2,  3,  4,  3,  2
     }
   };
-/*
+
   struct kernel5x5 kernel_5x5_sobel_vert_mirror = {
     .size = 5,
     .boundary = 2, 
@@ -173,7 +173,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
        -2,  -3,  -4,  -3,  -2
     }
   };
-*/
+
 
   edges_in_sector_1 = 0;
   edges_in_sector_2 = 0;

@@ -65,7 +65,7 @@ float heading_change_best = 1;
 float maxDistance = 2.25f;               // max waypoint displacement [m]
 uint8_t minimum_center_confidence_for_move = 2; //When trying to move left or right if center confidence is lower than this number, drone wont move.
 
-const int16_t max_trajectory_confidence = 10; // number of consecutive negative object detections to be sure we are obstacle free
+const int16_t max_trajectory_confidence = 7; // number of consecutive negative object detections to be sure we are obstacle free
 
 int16_t green_pixels_sector_1_cb = 0; 
 int16_t green_pixels_sector_2_cb = 0;
