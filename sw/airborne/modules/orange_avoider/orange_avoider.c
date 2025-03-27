@@ -44,7 +44,7 @@ static uint8_t increase_nav_heading(float incrementDegrees);
 static uint8_t chooseRandomIncrementAvoidance(void);
 
 bool print_msgs = false;
-uint16_t edge_weight = 15;
+uint16_t edge_weight = 6;
 
 
 uint8_t downsampling_value = 1; 
@@ -57,7 +57,7 @@ enum navigation_state_t {
   };
 
 // define settings
-float oa_color_count_frac = 0.1f; // this is the only one used right now for thresholds
+float oa_color_count_frac = 0.08f; // this is the only one used right now for thresholds
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
 
 float heading_increment = 5.f;          // heading angle increment [deg]
