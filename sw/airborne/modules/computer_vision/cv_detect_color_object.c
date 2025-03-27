@@ -118,7 +118,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     // weight = 273
   };
 
-  struct kernel3x3 kernel_3x3_gauss = {
+  /*struct kernel3x3 kernel_3x3_gauss = {
     .size = 3,
     .boundary = 1,
     .values = { 1, 2, 1,
@@ -148,7 +148,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
         -3, -2,  0,  2,  3,
         -2, -1,  0,  1,  2
     }
-  };
+  };*/
 
   struct kernel5x5 kernel_5x5_sobel_vert = {
     .size = 5,
@@ -161,7 +161,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
          2,  3,  4,  3,  2
     }
   };
-
+/*
   struct kernel5x5 kernel_5x5_sobel_vert_mirror = {
     .size = 5,
     .boundary = 2, 
@@ -173,7 +173,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
        -2,  -3,  -4,  -3,  -2
     }
   };
-
+*/
 
   edges_in_sector_1 = 0;
   edges_in_sector_2 = 0;
@@ -254,7 +254,7 @@ struct kernel{
   uint8_t boundary; // how much boundary do we have (for 3, its 1 pixel, 5 gives 2 pixels etc.)
   int8_t values[];
 };
-
+void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight, bool draw);
 void apply_kernel(struct image_t *img, struct kernel *kernel, bool edge_detection, uint8_t weight, bool draw) {
   // Create a static copy of the original image buffer for detection.
   struct image_t static_copy = deep_copy_image(img);

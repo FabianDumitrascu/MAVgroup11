@@ -123,12 +123,7 @@ void orange_avoider_init(void)
   AbiBindMsgEDGE_DETECTION_GROUP_11(EDGE_DETECTION_GROUP_11_ID, &edge_detection_ev, edge_count_cb);
 }
 
-void orange_avoider_periodic(void)
-{
-    // Static counters to build up forward movement and to avoid endless search turning.
-    static int safe_counter = 0;
-    static int search_counter = 0;
-
+void orange_avoider_periodic(void){
     // Only execute if we are flying.
     if (!autopilot_in_flight()) {
         return;
@@ -187,7 +182,7 @@ void orange_avoider_periodic(void)
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
         }
-        //increase_nav_heading((right_confidence-left_confidence)/center_confidence); //Steer slightly is there is a large confidence gradient
+        increase_nav_heading((right_confidence-left_confidence)/center_confidence); //Steer slightly is there is a large confidence gradient
 
         // Move waypoint forward
         moveWaypointForward(WP_TRAJECTORY, moveDistance);

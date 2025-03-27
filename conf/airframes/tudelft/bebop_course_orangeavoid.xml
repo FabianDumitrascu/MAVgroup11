@@ -32,12 +32,12 @@
       <define name="LOGGER_FILE_PATH" value="/tmp/paparazzi/log"/>
       
       <!-- Detect GREEN -->
-      <define name="GREEN_DETECTOR_LUM_MIN" value="0"/>
-      <define name="GREEN_DETECTOR_LUM_MAX" value="100"/>
+      <define name="GREEN_DETECTOR_LUM_MIN" value="114"/>
+      <define name="GREEN_DETECTOR_LUM_MAX" value="186"/>
       <define name="GREEN_DETECTOR_CB_MIN" value="0"/>
-      <define name="GREEN_DETECTOR_CB_MAX" value="126"/>
+      <define name="GREEN_DETECTOR_CB_MAX" value="130"/>
       <define name="GREEN_DETECTOR_CR_MIN" value="0"/>
-      <define name="GREEN_DETECTOR_CR_MAX" value="126"/>
+      <define name="GREEN_DETECTOR_CR_MAX" value="141"/>
       <define name="GREEN_THRESHOLD" value="100"/>
       <define name="EDGE_THRESHOLD" value="100"/>
       <define name="SCREEN_FRACTION_SCAN" value="10"/>
