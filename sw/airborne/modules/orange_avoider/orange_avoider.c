@@ -143,8 +143,6 @@ void orange_avoider_periodic(void){
     int32_t reward_edge_center = edge_count_sector_2_cb;
     int32_t reward_edge_right = edge_count_sector_3_cb;   
     
-    // int edge_weight = 15; 
-    
     // Adjust these reward functions to change sensitivity to edges or green pixels etc....
     reward_left = reward_green_left - reward_edge_left * edge_weight;
     reward_center = reward_green_center - reward_edge_center * edge_weight;
@@ -242,12 +240,7 @@ void orange_avoider_periodic(void){
         // Stop
         waypoint_move_here_2d(WP_GOAL);
         waypoint_move_here_2d(WP_RETREAT);
-        waypoint_move_here_2d(WP_TRAJECTORY);
-        
-        waypoint_move_here_2d(WP_GOAL);
-        waypoint_move_here_2d(WP_RETREAT);
-        waypoint_move_here_2d(WP_TRAJECTORY);
-      
+        waypoint_move_here_2d(WP_TRAJECTORY);      
 
         if (left_confidence == 0 && right_confidence == 0) {
           // Turn far left if no confidence on either side.
@@ -288,6 +281,7 @@ void orange_avoider_periodic(void){
                       left_confidence, center_confidence, right_confidence,
                       reward_left, reward_center, reward_right);
         }
+
         increase_nav_heading(heading_increment);
         moveWaypointForward(WP_TRAJECTORY, 1.5f);
         moveWaypointForward(WP_RETREAT, -1.0f);
@@ -297,6 +291,8 @@ void orange_avoider_periodic(void){
           increase_nav_heading(-heading_increment);
           // Reset safe counter (here, we reset center confidence)
           center_confidence = 0;
+          left_confidence = 0;
+          right_confidence = 0;
           // Ensure direction is safe before continuing
           navigation_state = SEARCH_FOR_SAFE_HEADING;
         }
