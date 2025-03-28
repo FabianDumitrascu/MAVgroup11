@@ -61,7 +61,7 @@ uint8_t green_cr_max = 0;
 uint16_t green_threshold = 0;
 uint16_t edge_threshold = 0;
 uint8_t screen_fraction_scan = 0;
-uint8_t downsample_factor = 1;
+uint8_t downsample_factor = 4;
 
 bool draw = true;
 bool print_detections = false;
@@ -117,7 +117,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
     int8_t values[25]; // Kernel coefficients (using signed values)
     // weight = 273
   };
-  /*
+  
   struct kernel3x3 kernel_3x3_gauss = {
     .size = 3,
     .boundary = 1,
@@ -125,7 +125,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
                 2, 4, 2,
                 1, 2, 1 }
   };
-
+  /*
   struct kernel5x5 kernel_5x5_gauss = {
     .size = 5,
     .boundary = 2,
@@ -186,8 +186,8 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 
   // Call apply_kernel to perform the convolution with a Gaussian filter.
   // edge_detection is false so that the_OBJECTs 16.
-  // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 273);
-  // apply_kernel(img, (struct kernel *)&kernel_5x5_gauss, false, 350);
+  apply_kernel(img, (struct kernel *)&kernel_3x3_gauss, false, 273);
+  // apply_kernel(img, (struct kernel *)&kernel_3X3_gauss, false, 350);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_hor, true, 1);
   apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert, true, 1, draw);
   // apply_kernel(img, (struct kernel *)&kernel_5x5_sobel_vert_mirror, true, 1);

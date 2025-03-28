@@ -47,7 +47,7 @@ bool print_msgs = false;
 uint16_t edge_weight = 6;
 
 
-uint8_t downsampling_value = 1; 
+uint8_t downsampling_value = 4; 
 
 enum navigation_state_t {
   SAFE,
