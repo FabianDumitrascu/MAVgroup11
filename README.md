@@ -1,76 +1,53 @@
 # MAIN README
 
-Paparazzi UAS
+Autonomous Flight of Micro Air Vehicles: Group 11
 =============
-[![Build Status](https://paparazziuav.semaphoreci.com/badges/paparazzi/branches/master.svg?style=shields&key=d3a59143-a357-434e-89b8-057f15ed8dd2)](https://paparazziuav.semaphoreci.com/projects/paparazzi) [![Gitter chat](https://badges.gitter.im/paparazzi/discuss.svg)](https://gitter.im/paparazzi/discuss)
-<a href="https://scan.coverity.com/projects/paparazzi-paparazzi">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/4928/badge.svg"/>
-</a>
 
-Paparazzi is a free open source software package for Unmanned (Air) Vehicle Systems.
-For many years, the system has been used successfuly by hobbyists, universities and companies all over the world, on vehicles of various sizes (11.9g to 25kg).
-Paparazzi supports fixed wing, rotorcraft, hybrids, flapping vehicles and it is even possible to use it for boats and surface vehicles.
+This project focuses on autonomous indoor navigation for micro-sized drones, specifically the Parrot Bebop drone, in an obstacle-rich environment(Cyber Zoo Lab). The goal is to enable safe and efficient navigation using vision-based perception and optimized control strategies, running entirely onboard the drone without external processing.
 
-Documentation is available here https://paparazzi-uav.readthedocs.io/en/latest/
-
-More docs is also available on the wiki http://wiki.paparazziuav.org
-
-To get in touch, subscribe to the mailing list [paparazzi-devel@nongnu.org] (http://savannah.nongnu.org/mail/?group=paparazzi), the IRC channel (freenode, #paparazzi) and Gitter (https://gitter.im/paparazzi/discuss).
-
-Required software
+Project Pipeline Overview
 -----------------
-
-Instructions for installation can be found on the wiki (http://wiki.paparazziuav.org/wiki/Installation).
-
-Quick start:
-
-```
-git clone https://github.com/paparazzi/paparazzi.git
-cd ./paparazzi
-./install.sh
-```
-
-
-
-For Ubuntu users, required packages are available in the [paparazzi-uav PPA] (https://launchpad.net/~paparazzi-uav/+archive/ppa),
-Debian users can use the [OpenSUSE Build Service repository] (http://download.opensuse.org/repositories/home:/flixr:/paparazzi-uav/Debian_7.0/)
-
-Debian/Ubuntu packages:
-- **paparazzi-dev** is the meta-package on which the Paparazzi software depends to compile and run the ground segment and simulator.
-- **paparazzi-jsbsim** is needed for using JSBSim as flight dynamics model for the simulator.
-
-Recommended cross compiling toolchain: https://launchpad.net/gcc-arm-embedded
-
-
-Directories quick and dirty description:
-----------------------------------------
-
-_conf_: the configuration directory (airframe, radio, ... descriptions).
-
-_data_: where to put read-only data (e.g. maps, terrain elevation files, icons)
-
-_doc_: documentation (diagrams, manual source files, ...)
-
-_sw_: software (onboard, ground station, simulation, ...)
-
-_var_: products of compilation, cache for the map tiles, ...
+Our approach involves:
+- **Vision-based navigation** using a single forward-facing camera for real-time environment perception.
+- **Collision avoidance** through a combination of green pixel segmentation and edge detection.
+- **State-based decision-making** to dynamically adjust flight behavior based on perceived safety levels.
 
 
 Compilation and demo simulation
 -------------------------------
 
-1. type "make" in the top directory to compile all the libraries and tools.
+1. Clone the repository and install 
 
-2. "./paparazzi" to run the Paparazzi Center
+```
+git clone https://github.com/FabianDumitrascu/MAVgroup11.git
+cd MAVgroup11/
+./install.sh
+```
 
-3. Select the "Bixler" aircraft in the upper-left A/C combo box.
-  Select "sim" from upper-middle "target" combo box. Click "Build".
-  When the compilation is finished, select "Simulation" in Operation tab and click "Start Session".
+2. Once installation is done, open the paparazzi center.
+```
+cd MAVgroup11/
+./paparazzi
+```
 
-4. In the GCS, wait about 10s for the aircraft to be in the "Holding point" navigation block.
-  Switch to the "Takeoff" block (lower-left blue airway button in the strip).
-  Takeoff with the green launch button.
+3. **Select Aircraft**:  
+   - In the top-left dropdown, choose **`bebop orange avoid`**. 
+ 
+4. **Set Build Target**:  
+   - Under **`Build`**, select **`nps`** in the **`Target`** dropdown.  
+5. **Compile the Code**:  
+   - Click **`Clean`**, then **`Build`**.  
+6. **Launch the Simulation**:  
+   - Go to the **`Operation`** tab.  
+   - Under **`Control Panel`**, select **`userconf/tudelft/course control panel.xml`**.  
+   - Under **`Session`**, choose **`Simulation - Gazebo`** and click **`Start Session`**.  
+7. **Adjust Parameters (Optional)**:  
+   - During simulation, color segmentation and edge detection parameters can be fine-tuned to improve performance  in the Paparazzi Center.  
+8. **Stop the Simulation**:  
+   - Click **`Stop All`** in the Paparazzi Center when done.  
+
+During simulation, the parameters for color segmentation and edge detection can be modified for better perfection during the run
+
 
 Uploading the embedded software
 ----------------------------------
